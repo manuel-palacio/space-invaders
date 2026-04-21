@@ -112,18 +112,33 @@ html, body {
     opacity: 1;
 }
 
-/* Force landscape orientation on mobile */
-@media screen and (orientation: portrait) and (max-width: 768px) {
-    html {
-        transform: rotate(90deg);
-        transform-origin: left top;
-        width: 100vh;
-        height: 100vw;
-        overflow: hidden;
-        position: absolute;
-        top: 100%;
-        left: 0;
-    }
+/* Portrait warning overlay — shown only on mobile in portrait */
+#portraitWarning {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #0a0a1f;
+    color: #00ffff;
+    font-family: 'Courier New', monospace;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 20px;
+}
+#portraitWarning .rotate-icon {
+    font-size: 60px;
+    animation: rotateHint 2s ease-in-out infinite;
+}
+#portraitWarning p {
+    font-size: 18px;
+    color: #888;
+    max-width: 280px;
+}
+@keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
 }
 
 /* Show touch controls on touch devices */
@@ -138,5 +153,61 @@ html, body {
         top: auto;
         bottom: 180px;
         right: 20px;
+    }
+    /* Show portrait warning in portrait orientation */
+    @media (orientation: portrait) {
+        #portraitWarning {
+            display: flex;
+        }
+        #gameCanvas, #touchControls, #muteBtn {
+            display: none;
+        }
+    }
+}
+
+/* Touch action buttons row */
+#touchActions {
+    display: none;
+    position: fixed;
+    bottom: 140px;
+    right: 15px;
+    z-index: 10;
+    gap: 10px;
+    pointer-events: none;
+    flex-direction: column;
+}
+.touch-action-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    letter-spacing: 1px;
+    -webkit-tap-highlight-color: transparent;
+}
+#shieldBtn {
+    background: rgba(0, 200, 255, 0.15);
+    border: 2px solid rgba(0, 200, 255, 0.5);
+    color: #00ccff;
+}
+#shieldBtn:active {
+    background: rgba(0, 200, 255, 0.4);
+}
+#bombBtn {
+    background: rgba(255, 136, 0, 0.15);
+    border: 2px solid rgba(255, 136, 0, 0.5);
+    color: #ff8800;
+}
+#bombBtn:active {
+    background: rgba(255, 136, 0, 0.4);
+}
+@media (hover: none) and (pointer: coarse) {
+    #touchActions {
+        display: flex;
     }
 }

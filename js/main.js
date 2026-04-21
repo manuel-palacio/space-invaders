@@ -130,6 +130,28 @@
             }
         });
 
+        // Shield & Bomb touch buttons
+        const shieldBtn = document.getElementById('shieldBtn');
+        const bombBtn = document.getElementById('bombBtn');
+        if (shieldBtn) {
+            shieldBtn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                game.onKeyDown('KeyE');
+            });
+            shieldBtn.addEventListener('touchend', () => {
+                game.onKeyUp('KeyE');
+            });
+        }
+        if (bombBtn) {
+            bombBtn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                game.onKeyDown('KeyQ');
+            });
+            bombBtn.addEventListener('touchend', () => {
+                game.onKeyUp('KeyQ');
+            });
+        }
+
         // Mute button
         const muteBtn = document.getElementById('muteBtn');
         muteBtn.addEventListener('click', () => {

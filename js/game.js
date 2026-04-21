@@ -141,10 +141,14 @@ class Game {
         this.blackHole = new BlackHole();
         this.asteroidBelt = new AsteroidBelt();
         this.bombFlashTimer = 0;
-        // Start background music
+        // Start background music (ensure AudioContext is resumed first)
         if (this.audio.ctx && this.audio.masterGain) {
             if (!this.music) this.music = new MusicManager(this.audio.ctx, this.audio.masterGain);
-            this.music.start();
+            if (this.audio.ctx.state === 'suspended') {
+                this.audio.ctx.resume().then(() => this.music.start());
+            } else {
+                this.music.start();
+            }
         }
     }
 

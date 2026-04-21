@@ -313,11 +313,17 @@ class MusicManager {
 
     start() {
         if (this.playing || !this.ctx) return;
+
+        // Ensure AudioContext is running (browser autoplay policy)
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+
         this.playing = true;
 
         // ---- Master bus for all music layers ----
         this.musicBus = this.ctx.createGain();
-        this.musicBus.gain.value = 0.18;          // keep everything subtle
+        this.musicBus.gain.value = 0.55;          // audible but not overpowering
         this.musicBus.connect(this.masterGain);
 
         this._startBassDrone();
@@ -441,10 +447,10 @@ class MusicManager {
         lfo.frequency.value = 0.25;              // gentle pulse
 
         const lfoGain = this.ctx.createGain();
-        lfoGain.gain.value = 0.08;
+        lfoGain.gain.value = 0.15;
 
         const padGain = this.ctx.createGain();
-        padGain.gain.value = 0.08;               // very low base volume
+        padGain.gain.value = 0.20;               // audible pad volume
 
         // Intensity multiplier
         const intensityGain = this.ctx.createGain();
