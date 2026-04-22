@@ -385,7 +385,8 @@ class MusicManager {
             'assets/soldier.mp3',
             'assets/destroyer.mp3',
             'assets/deep.mp3',
-            'assets/pretty.mp3'
+            'assets/pretty.mp3',
+            'assets/entity.mp3'
         ];
         this.trackIndex = 0;
 
