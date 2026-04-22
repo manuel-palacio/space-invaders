@@ -456,19 +456,21 @@ class Game {
                             }
                         }
 
-                        // Asteroid splitting — all asteroids above fragment size break apart
-                        if (e.type === 'asteroid' && e.sizeMultiplier >= 0.8) {
-                            const fragCount = e.sizeMultiplier >= 1.4 ? Utils.randomInt(2, 4) : Utils.randomInt(2, 3);
-                            const fragSize = e.sizeMultiplier >= 1.4 ? Utils.random(0.5, 0.7) : Utils.random(0.3, 0.5);
+                        // Asteroid splitting — big asteroids break into smaller ones
+                        if (e.type === 'asteroid' && e.sizeMultiplier >= 1.0) {
+                            const fragCount = Utils.randomInt(2, 4);
                             for (let f = 0; f < fragCount; f++) {
                                 const frag = new Asteroid(
                                     this.canvas.width, this.canvas.height,
-                                    fragSize,
-                                    e.x, e.y
+                                    Utils.random(0.6, 0.8),
+                                    e.x + Utils.random(-10, 10),
+                                    e.y + Utils.random(-15, 15)
                                 );
-                                const spreadAngle = (f / fragCount) * Math.PI * 2 + Utils.random(-0.3, 0.3);
-                                frag.vx = Utils.random(-150, -50) + Math.cos(spreadAngle) * 80;
-                                frag.vy = Math.sin(spreadAngle) * Utils.random(50, 120);
+                                // Scatter outward from explosion center
+                                const spreadAngle = (f / fragCount) * Math.PI * 2 + Utils.random(-0.4, 0.4);
+                                frag.vx = -40 + Math.cos(spreadAngle) * Utils.random(60, 120);
+                                frag.vy = Math.sin(spreadAngle) * Utils.random(60, 140);
+                                frag.wavy = false; // fragments fly straight
                                 frag.baseY = frag.y;
                                 this.spawner.enemies.push(frag);
                             }

@@ -303,9 +303,11 @@ class Player {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
-        // Clamp to screen
-        this.x = Utils.clamp(this.x, this.width / 2, this.canvas.width - this.width / 2);
-        this.y = Utils.clamp(this.y, this.height / 2, this.canvas.height - this.height / 2);
+        // Wrap right/top/bottom edges, block left edge
+        if (this.x > this.canvas.width + this.width / 2) this.x = -this.width / 2;
+        this.x = Math.max(this.x, this.width / 2); // can't go off left
+        if (this.y > this.canvas.height + this.height / 2) this.y = -this.height / 2;
+        if (this.y < -this.height / 2) this.y = this.canvas.height + this.height / 2;
 
         // Shoot cooldown
         if (this.shootCooldown > 0) this.shootCooldown -= dt;
