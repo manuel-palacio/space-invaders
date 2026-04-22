@@ -41,6 +41,10 @@ class Player {
         this.shield = false;
         this.shieldTimer = 0;
 
+        // Ricochet (bouncing bullets power-up)
+        this.ricochet = false;
+        this.ricochetTimer = 0;
+
         // Death Ray (laser beam power-up)
         this.deathRay = false;
         this.deathRayTimer = 0;
@@ -106,6 +110,8 @@ class Player {
         this.rapidFireTimer = 0;
         this.shield = false;
         this.shieldTimer = 0;
+        this.ricochet = false;
+        this.ricochetTimer = 0;
         this.deathRay = false;
         this.deathRayTimer = 0;
         this.fireRate = this.baseFireRate;
@@ -143,6 +149,10 @@ class Player {
             case 'DEATH_RAY':
                 this.deathRay = true;
                 this.deathRayTimer = POWERUP_TYPES.DEATH_RAY.duration;
+                break;
+            case 'RICOCHET':
+                this.ricochet = true;
+                this.ricochetTimer = POWERUP_TYPES.RICOCHET.duration;
                 break;
         }
     }
@@ -331,6 +341,14 @@ class Player {
             }
         }
 
+        // Ricochet timer
+        if (this.ricochet) {
+            this.ricochetTimer -= dt;
+            if (this.ricochetTimer <= 0) {
+                this.ricochet = false;
+            }
+        }
+
         // Death Ray timer
         if (this.deathRay) {
             this.deathRayTimer -= dt;
@@ -389,18 +407,23 @@ class Player {
 
         // Center shot
         const dmg = this.baseDamage || 1;
+        const bounceCount = this.ricochet ? 3 : 0;
+        const bulletColor = this.ricochet ? '#ff8800' : '#00ffff';
         const p = projectilePool.get();
         if (p) {
-            p.init(tipX, tipY, bulletSpeed, 0, '#00ffff', '#00ffff', false, dmg);
+            // Ricochet bullets get a slight random spread for chaos
+            const vy = this.ricochet ? Utils.random(-80, 80) : 0;
+            p.init(tipX, tipY, bulletSpeed, vy, bulletColor, bulletColor, false, dmg);
+            p.bounces = bounceCount;
         }
 
         // Triple shot extras
         if (this.tripleShot) {
             const spread = 0.2;
             const p2 = projectilePool.get();
-            if (p2) p2.init(tipX, tipY, bulletSpeed * Math.cos(spread), bulletSpeed * Math.sin(-spread), '#00ff66', '#00ff66', false);
+            if (p2) { p2.init(tipX, tipY, bulletSpeed * Math.cos(spread), bulletSpeed * Math.sin(-spread), '#00ff66', '#00ff66', false); p2.bounces = bounceCount; }
             const p3 = projectilePool.get();
-            if (p3) p3.init(tipX, tipY, bulletSpeed * Math.cos(spread), bulletSpeed * Math.sin(spread), '#00ff66', '#00ff66', false);
+            if (p3) { p3.init(tipX, tipY, bulletSpeed * Math.cos(spread), bulletSpeed * Math.sin(spread), '#00ff66', '#00ff66', false); p3.bounces = bounceCount; }
         }
 
         particles.createMuzzleFlash(tipX + 5, tipY, 0, '#00ffff');

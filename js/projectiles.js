@@ -31,6 +31,7 @@ class Projectile {
         this.isEnemy = isEnemy;
         this.damage = damage;
         this.radius = (isEnemy ? 3 : 4) * GAME_SCALE;
+        this.bounces = 0; // remaining bounces (0 = no bounce)
     }
 
     update(dt, canvasW, canvasH) {
@@ -38,9 +39,15 @@ class Projectile {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
+        // Bounce off top/bottom edges if ricochet is active
+        if (this.bounces > 0 && !this.isEnemy) {
+            if (this.y <= 0) { this.y = 0; this.vy = Math.abs(this.vy); this.bounces--; }
+            if (this.y >= canvasH) { this.y = canvasH; this.vy = -Math.abs(this.vy); this.bounces--; }
+        }
+
         // Off-screen check with margin
         if (this.x < -20 || this.x > canvasW + 20 ||
-            this.y < -20 || this.y > canvasH + 20) {
+            (this.bounces <= 0 && (this.y < -20 || this.y > canvasH + 20))) {
             this.active = false;
         }
     }

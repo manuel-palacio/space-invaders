@@ -757,6 +757,11 @@ class Game {
             ctx.fillText(`SHIELD ACTIVE ${Math.ceil(this.player.activeShieldTimer)}s`, 16, puY);
             puY += 18;
         }
+        if (this.player.ricochet) {
+            ctx.fillStyle = '#ff8800';
+            ctx.fillText(`RICOCHET ${Math.ceil(this.player.ricochetTimer)}s`, 16, puY);
+            puY += 18;
+        }
         if (this.player.deathRay) {
             ctx.fillStyle = '#cc0000';
             ctx.shadowColor = '#cc0000';
