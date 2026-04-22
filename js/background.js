@@ -2,6 +2,72 @@
 // background.js — Multi-layer parallax starfield with moon
 // ============================================================
 
+// Draw NIN logo on a planet surface
+function drawNINLogo(ctx, x, y, size, style, alpha) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = (alpha || 0.3);
+    const s = size;
+
+    switch (style) {
+        case 'block': {
+            // Classic NIN block letters
+            ctx.font = `bold ${s}px Arial Black, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#000';
+            ctx.fillText('NIN', 0, 0);
+            break;
+        }
+        case 'outline': {
+            // Outlined NIN
+            ctx.font = `bold ${s}px Arial Black, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = s * 0.08;
+            ctx.lineJoin = 'round';
+            ctx.strokeText('NIN', 0, 0);
+            break;
+        }
+        case 'stencil': {
+            // Stencil/carved look — dark fill with lighter inner
+            ctx.font = `bold ${s}px Arial Black, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillText('NIN', 0, 0);
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillText('NIN', 1, 1);
+            break;
+        }
+        case 'scratched': {
+            // Scratched/etched into surface
+            ctx.font = `bold ${s}px Arial Black, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillText('NIN', -1, -1);
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.fillText('NIN', 1, 1);
+            break;
+        }
+        case 'glow': {
+            // Glowing/branded
+            ctx.font = `bold ${s}px Arial Black, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#cc0000';
+            ctx.shadowBlur = s * 0.3;
+            ctx.fillStyle = '#cc0000';
+            ctx.fillText('NIN', 0, 0);
+            ctx.shadowBlur = 0;
+            break;
+        }
+    }
+    ctx.restore();
+}
+
 class Star {
     constructor(canvas, speed, size, brightness) {
         this.canvas = canvas;
@@ -198,6 +264,9 @@ class Moon {
             }
         });
 
+        // NIN logo carved into the moon surface
+        drawNINLogo(ctx, x - r * 0.2, y + r * 0.1, r * 0.5, 'scratched', 0.4);
+
         ctx.restore();
     }
 }
@@ -288,6 +357,9 @@ class Mars {
         ctx.beginPath();
         ctx.ellipse(x + r * 0.2, y + r * 0.1, r * 0.5, r * 0.2, 0.3, 0, Math.PI * 2);
         ctx.fill();
+
+        // NIN logo branded into Mars surface
+        drawNINLogo(ctx, x - r * 0.1, y, r * 0.4, 'block', 0.25);
 
         ctx.restore();
     }
@@ -380,6 +452,9 @@ class GasGiant {
         ctx.beginPath();
         ctx.ellipse(spotX, spotY, r * 0.15, r * 0.1, 0.2, 0, Math.PI * 2);
         ctx.fill();
+
+        // NIN logo glowing in the storm bands
+        drawNINLogo(ctx, x, y - r * 0.15, r * 0.45, 'glow', 0.2);
 
         ctx.restore();
     }
@@ -480,6 +555,9 @@ class IcePlanet {
         ctx.arc(x, y, r * 1.1, 0, Math.PI * 2);
         ctx.fill();
 
+        // NIN logo frozen into the ice
+        drawNINLogo(ctx, x + r * 0.05, y + r * 0.1, r * 0.4, 'outline', 0.2);
+
         ctx.restore();
     }
 }
@@ -546,6 +624,10 @@ class RingedPlanet {
             ctx.fillStyle = i % 2 === 0 ? t.body[0] : t.body[2];
             ctx.fillRect(x - r, by, r * 2, r * 0.15);
         }
+
+        // NIN logo stenciled on the planet body
+        drawNINLogo(ctx, x, y, r * 0.4, 'stencil', 0.3);
+
         ctx.restore();
 
         // Front half of rings (in front of planet)

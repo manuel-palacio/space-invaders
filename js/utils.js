@@ -460,7 +460,7 @@ class MusicManager {
 const ASSET_MANIFEST = {
     splashBg:    'assets/splash-bg.png',
     gameoverBg:  'assets/gameover-bg.png',
-    playerShip:  'assets/player-ship.png',
+    playerShip:  'assets/player-ship-2.png',
     enemySmall:  'assets/enemy-small.png',
     enemyLarge:  'assets/enemy-large.png',
     moon:        'assets/moon.png',
