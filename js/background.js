@@ -166,9 +166,10 @@ class Moon {
 
         ctx.save();
 
-        // Moon sprite — if available, draw image and skip procedural rendering
-        if (this.assets.moon) {
-            const img = this.assets.moon;
+        // Moon sprite — use alienMoon or moon asset
+        const moonImg = this.assets.alienMoon || this.assets.moon;
+        if (moonImg) {
+            const img = moonImg;
             const drawSize = r * 2.4;
             const drawW = drawSize * (img.width / img.height);
             ctx.globalAlpha = 0.9;
@@ -275,8 +276,9 @@ class Moon {
 // Mars — Red planet with canyons and dust storms
 // ============================================================
 class Mars {
-    constructor(canvas) {
+    constructor(canvas, assets) {
         this.canvas = canvas;
+        this.assets = assets || {};
         this.baseX = canvas.width * Utils.random(0.55, 0.85);
         this.baseY = canvas.height * Utils.random(0.15, 0.8);
         this.radius = Math.min(canvas.width, canvas.height) * Utils.random(0.12, 0.18);
@@ -311,6 +313,16 @@ class Mars {
         const r = this.radius;
 
         ctx.save();
+
+        // Sprite rendering if available
+        if (this.assets.planetRed) {
+            const img = this.assets.planetRed;
+            const drawSize = r * 2.4;
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(img, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
+            ctx.restore();
+            return;
+        }
 
         // Planet body — rusty red gradient
         const grad = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.05, x, y, r);
@@ -464,8 +476,9 @@ class GasGiant {
 // IcePlanet — Blue-white frozen world
 // ============================================================
 class IcePlanet {
-    constructor(canvas) {
+    constructor(canvas, assets) {
         this.canvas = canvas;
+        this.assets = assets || {};
         this.baseX = canvas.width * Utils.random(0.55, 0.85);
         this.baseY = canvas.height * Utils.random(0.15, 0.8);
         this.radius = Math.min(canvas.width, canvas.height) * Utils.random(0.1, 0.16);
@@ -503,6 +516,16 @@ class IcePlanet {
         const r = this.radius;
 
         ctx.save();
+
+        // Sprite rendering — use alienMoon or planetIce if available
+        const iceSprite = this.assets.planetIce || this.assets.alienMoon;
+        if (iceSprite) {
+            const drawSize = r * 2.4;
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(iceSprite, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
+            ctx.restore();
+            return;
+        }
 
         // Planet body — icy blue
         const grad = ctx.createRadialGradient(x - r * 0.2, y - r * 0.3, r * 0.05, x, y, r);
@@ -992,9 +1015,9 @@ class Background {
         const pick = bodies[Utils.randomInt(0, bodies.length - 1)];
         switch (pick) {
             case 'moon':        return new Moon(canvas, assets);
-            case 'mars':        return new Mars(canvas);
+            case 'mars':        return new Mars(canvas, assets);
             case 'gasGiant':    return new GasGiant(canvas);
-            case 'icePlanet':   return new IcePlanet(canvas);
+            case 'icePlanet':   return new IcePlanet(canvas, assets);
             case 'ringedPlanet':return new RingedPlanet(canvas);
             default:            return new Moon(canvas, assets);
         }
