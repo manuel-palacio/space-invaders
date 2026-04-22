@@ -480,11 +480,11 @@ class Game {
                             ghost:   { colors: ['#bb66ff', '#dd99ff', '#8833cc', '#ffffff'], count: 25, shake: 4 },
                             devil:   { colors: ['#ff4400', '#ff8800', '#ffcc00', '#ff2200'], count: 35, shake: 7 },
                             boss:    { colors: ['#ffffff', '#ffdd00', '#ff8800', '#ff3366', '#00ffff'], count: 60, shake: 15 },
-                            asteroid:{ colors: ['#ff9900', '#ffdd00', '#aa7733', '#ffffff'], count: 18, shake: 3 }
+                            asteroid:{ colors: ['#ff9900', '#ffdd00', '#aa7733', '#ffffff'], count: 30, shake: 5 }
                         };
                         const fx = explosionMap[e.type] || explosionMap.asteroid;
                         this.particles.createColorExplosion(e.x, e.y, fx.colors,
-                            fx.count, 250, 0.6, 4);
+                            fx.count, 300, 0.8, 5);
                         this.shake.shake(fx.shake, 0.15);
                         this.audio.playExplosion();
                     } else {
@@ -817,7 +817,7 @@ class Game {
 
         // Controls
         ctx.font = 'bold 13px Courier New';
-        ctx.fillStyle = '#555';
+        ctx.fillStyle = '#777';
         const cy = h * 0.62;
         ctx.fillText('— CONTROLS —', w / 2, cy);
         ctx.font = '12px Courier New';
@@ -832,10 +832,10 @@ class Game {
         controls.forEach(([key, desc], i) => {
             const y = cy + 20 + i * 18;
             ctx.textAlign = 'right';
-            ctx.fillStyle = '#993300';
+            ctx.fillStyle = '#cc0000';
             ctx.fillText(key, w / 2 - 10, y);
             ctx.textAlign = 'left';
-            ctx.fillStyle = '#444';
+            ctx.fillStyle = '#888';
             ctx.fillText(desc, w / 2 + 10, y);
         });
         ctx.textAlign = 'center';

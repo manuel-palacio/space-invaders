@@ -1873,7 +1873,7 @@ class EnemySpawner {
     spawnByType(type, canvasW, canvasH, largeTier) {
         switch (type) {
             case 'asteroid': {
-                const sizeMul = Math.random() < 0.25 ? Utils.random(1.5, 2.0) : 1;
+                const sizeMul = Math.random() < 0.4 ? Utils.random(1.5, 2.0) : 1;
                 this.enemies.push(new Asteroid(canvasW, canvasH, sizeMul));
                 break;
             }
