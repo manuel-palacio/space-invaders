@@ -66,7 +66,7 @@ class Game {
         this.menuMusicStarted = false;
         this.shake = new ScreenShake();
         this.background = new Background(canvas, this.assets);
-        this.particles = new ParticlePool(600);
+        this.particles = new ParticlePool(1200);
         this.projectiles = new ProjectilePool(200);
         this.spawner = new EnemySpawner(this.assets);
         this.player = new Player(canvas, this.assets);
@@ -128,7 +128,7 @@ class Game {
         this.player.reset(this.canvas);
         this.spawner.reset();
         this.projectiles = new ProjectilePool(200);
-        this.particles = new ParticlePool(600);
+        this.particles = new ParticlePool(1200);
         this.powerups = [];
         // Randomize celestial body each new game
         this.background = new Background(this.canvas, this.assets);
@@ -430,6 +430,7 @@ class Game {
                 if (Utils.circleCollision(bullet.x, bullet.y, bullet.radius, e.x, e.y, e.radius)) {
                     bullet.active = false;
                     const killed = e.takeDamage(bullet.damage);
+                    console.log('HIT:', e.type, 'dmg:', bullet.damage, 'hp:', e.hp, 'killed:', killed);
                     if (killed) {
                         e.active = false;
                         // Combo + score
@@ -440,7 +441,7 @@ class Game {
                         this.player.addScrap(Utils.randomInt(1, e.type === 'boss' ? 30 : 3));
 
                         // Asteroid spider burst — only after phase 4, 15% chance
-                        if (e.type === 'asteroid' && currentPhase >= 4 && Math.random() < 0.15) {
+                        if (e.type === 'asteroid' && this.lastPhase >= 4 && Math.random() < 0.15) {
                             const spiderCount = Utils.randomInt(2, 3);
                             for (let s = 0; s < spiderCount; s++) {
                                 const spider = new SpiderDrone(this.canvas.width, this.canvas.height);
@@ -456,23 +457,35 @@ class Game {
                             }
                         }
 
-                        // Asteroid splitting — big asteroids break into smaller ones
-                        if (e.type === 'asteroid' && e.sizeMultiplier >= 1.0) {
-                            const fragCount = Utils.randomInt(2, 4);
-                            for (let f = 0; f < fragCount; f++) {
-                                const frag = new Asteroid(
-                                    this.canvas.width, this.canvas.height,
-                                    Utils.random(0.6, 0.8),
-                                    e.x + Utils.random(-10, 10),
-                                    e.y + Utils.random(-15, 15)
-                                );
-                                // Scatter outward from explosion center
-                                const spreadAngle = (f / fragCount) * Math.PI * 2 + Utils.random(-0.4, 0.4);
-                                frag.vx = -40 + Math.cos(spreadAngle) * Utils.random(60, 120);
-                                frag.vy = Math.sin(spreadAngle) * Utils.random(60, 140);
-                                frag.wavy = false; // fragments fly straight
-                                frag.baseY = frag.y;
-                                this.spawner.enemies.push(frag);
+                        // Asteroid splitting — asteroids break into smaller fragments
+                        if (e.type === 'asteroid') {
+                            // Only split if not already a tiny fragment
+                            if (e.radius > 10) {
+                                const fragCount = e.radius > 20 ? Utils.randomInt(3, 5) : Utils.randomInt(2, 3);
+                                console.log('SPLIT: asteroid r=' + e.radius + ' into ' + fragCount + ' frags at', e.x, e.y);
+                                for (let f = 0; f < fragCount; f++) {
+                                    const angle = ((f + 0.5) / fragCount) * Math.PI * 2;
+                                    const fragR = e.radius * Utils.random(0.4, 0.6);
+                                    const frag = new Asteroid(
+                                        this.canvas.width, this.canvas.height,
+                                        1, // normal sizeMultiplier
+                                        e.x, e.y
+                                    );
+                                    // Override radius directly for precise control
+                                    frag.radius = Math.max(6, fragR);
+                                    frag.sizeMultiplier = 0.5; // mark as fragment so it won't split again
+                                    frag.hp = 1;
+                                    frag.maxHp = 1;
+                                    frag.points = 5;
+                                    // Scatter outward slowly
+                                    frag.vx = Math.cos(angle) * Utils.random(40, 100) - 30;
+                                    frag.vy = Math.sin(angle) * Utils.random(40, 100);
+                                    frag.wavy = false;
+                                    frag.baseY = frag.y;
+                                    // Regenerate shape for new radius
+                                    frag.vertices = Utils.generateAsteroidShape(frag.radius, Utils.randomInt(5, 8));
+                                    this.spawner.enemies.push(frag);
+                                }
                             }
                         }
 
