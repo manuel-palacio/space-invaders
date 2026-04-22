@@ -385,7 +385,6 @@ class Player {
         }
 
         particles.createMuzzleFlash(tipX + 5, tipY, 0, '#00ffff');
-        audio.playLaser();
     }
 
     draw(ctx) {

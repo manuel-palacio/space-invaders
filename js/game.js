@@ -58,6 +58,12 @@ class Game {
         // Sub-systems
         this.audio = new AudioManager();
         this.music = null; // created on first play
+
+        // Menu music — plays on title/game-over screens
+        this.menuMusic = new Audio('assets/not.mp3');
+        this.menuMusic.loop = true;
+        this.menuMusic.volume = 0.4;
+        this.menuMusicStarted = false;
         this.shake = new ScreenShake();
         this.background = new Background(canvas, this.assets);
         this.particles = new ParticlePool(600);
@@ -136,12 +142,14 @@ class Game {
         // Boss & hazards
         this.bossActive = false;
         this.bossSpawnedForPhase = -1;
-        this.hazardTimer = Utils.random(30, 50);
+        this.hazardTimer = Utils.random(60, 90);
         this.solarFlare = new SolarFlare();
         this.blackHole = new BlackHole();
         this.asteroidBelt = new AsteroidBelt();
         this.bombFlashTimer = 0;
-        // Start background music (ensure AudioContext is resumed first)
+        // Stop menu music, start gameplay music
+        this.menuMusic.pause();
+        this.menuMusic.currentTime = 0;
         if (this.audio.ctx && this.audio.masterGain) {
             if (!this.music) this.music = new MusicManager(this.audio.ctx, this.audio.masterGain);
             if (this.audio.ctx.state === 'suspended') {
@@ -171,6 +179,9 @@ class Game {
         this.addToLeaderboard(this.score);
         this.audio.playGameOver();
         if (this.music) this.music.stop();
+        // Resume menu music on game over screen
+        this.menuMusic.currentTime = 0;
+        this.menuMusic.play().catch(() => {});
     }
 
     addToLeaderboard(score) {
@@ -200,6 +211,10 @@ class Game {
             this.audio.init();
             this.audio.resume();
             if (this.state === STATE.MENU) {
+                // Start menu music on first interaction if not already playing
+                if (!this.menuMusicStarted) {
+                    this.menuMusicStarted = true;
+                }
                 this.startGame();
             } else if (this.state === STATE.GAME_OVER) {
                 this.startGame();
@@ -296,10 +311,11 @@ class Game {
             if (!bossAlive) this.bossActive = false;
         }
 
-        // Environmental hazards
+        // Environmental hazards — less frequent in easy phases, more frequent later
         this.hazardTimer -= dt;
-        if (this.hazardTimer <= 0 && !this.bossActive) {
-            this.hazardTimer = Utils.random(25, 45);
+        if (this.hazardTimer <= 0 && !this.bossActive && currentPhase >= 3) {
+            const hazardGap = currentPhase <= 5 ? Utils.random(35, 55) : Utils.random(20, 35);
+            this.hazardTimer = hazardGap;
             const hazardRoll = Math.random();
             if (hazardRoll < 0.33) {
                 this.solarFlare.trigger(this.canvas.width);
@@ -328,9 +344,9 @@ class Game {
             }
         }
 
-        // Music intensity scales with phase
+        // Music intensity scales with phase (10 phases)
         if (this.music && this.music.playing) {
-            this.music.setIntensity(Math.min(1, (this.lastPhase + 1) / 8));
+            this.music.setIntensity(Math.min(1, (this.lastPhase + 1) / 10));
         }
 
         // Projectiles
@@ -415,8 +431,8 @@ class Game {
                         // Scrap drops (1-3 per kill)
                         this.player.addScrap(Utils.randomInt(1, e.type === 'boss' ? 30 : 3));
 
-                        // Asteroid spider burst — 15% chance to release mini spiders
-                        if (e.type === 'asteroid' && Math.random() < 0.15) {
+                        // Asteroid spider burst — only after phase 4, 15% chance
+                        if (e.type === 'asteroid' && currentPhase >= 4 && Math.random() < 0.15) {
                             const spiderCount = Utils.randomInt(2, 3);
                             for (let s = 0; s < spiderCount; s++) {
                                 const spider = new SpiderDrone(this.canvas.width, this.canvas.height);
@@ -452,11 +468,11 @@ class Game {
 
                         // Type-specific explosion effects
                         const explosionMap = {
-                            ship:    { colors: ['#ff3366', '#ff9900', '#ffdd00', '#ffffff'], count: 30, shake: 6 },
-                            bomber:  { colors: ['#aa55ff', '#ff8800', '#ffdd00', '#ffffff'], count: 40, shake: 8 },
-                            mine:    { colors: ['#ff2222', '#ff6600', '#ffdd00', '#ff4444'], count: 35, shake: 7 },
-                            drone:   { colors: ['#00ff66', '#66ffaa', '#ffffff'],            count: 12, shake: 2 },
-                            stealth: { colors: ['#00cccc', '#00ffff', '#ffffff', '#004466'], count: 22, shake: 4 },
+                            ship:    { colors: ['#ff6644', '#ffaa33', '#ffee00', '#ffffff'], count: 30, shake: 6 }, // critter splat
+                            bomber:  { colors: ['#cc44ff', '#aa66ee', '#8833cc', '#ffffff'], count: 40, shake: 8 }, // octopus ink burst
+                            mine:    { colors: ['#ff66cc', '#ff88dd', '#ffaaee', '#ffffff'], count: 35, shake: 7 }, // jellyfish pop
+                            drone:   { colors: ['#ddff00', '#ffee44', '#aadd00', '#ffffff'], count: 12, shake: 2 }, // firefly flash
+                            stealth: { colors: ['#00cccc', '#00ffff', '#ffff00', '#ff00ff'], count: 22, shake: 4 }, // chameleon color burst
                             spider:  { colors: ['#66ff22', '#aaff44', '#44aa11', '#ffffff'], count: 28, shake: 5 },
                             ghost:   { colors: ['#bb66ff', '#dd99ff', '#8833cc', '#ffffff'], count: 25, shake: 4 },
                             devil:   { colors: ['#ff4400', '#ff8800', '#ffcc00', '#ff2200'], count: 35, shake: 7 },
@@ -695,8 +711,8 @@ class Game {
             ctx.save();
             ctx.globalAlpha = alpha;
             ctx.textAlign = 'center';
-            ctx.font = `italic 13px Courier New`;
-            ctx.fillStyle = '#ff3333';
+            ctx.font = `italic ${Math.min(w * 0.025, 18)}px Courier New`;
+            ctx.fillStyle = '#ffffff';
             ctx.fillText(`"${this.quoteText}"`, w / 2, h * 0.55);
             ctx.restore();
         }

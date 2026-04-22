@@ -189,14 +189,14 @@ class Asteroid extends Enemy {
 }
 
 // ============================================================
-// EnemyShip — Triangular ship that shoots back, 2-3 HP
+// EnemyShip (Alien Critter) — Bug-like creature, scurries & spits
 // ============================================================
 class EnemyShip extends Enemy {
     constructor(canvasW, canvasH, tier = 1, assets = {}) {
         super();
         this.assets = assets;
         this.type = 'ship';
-        this.tier = tier; // 1 = small, 2 = large
+        this.tier = tier; // 1 = small critter, 2 = large critter
         this.radius = tier === 1 ? 16 : 24;
         this.hp = tier === 1 ? 2 : 3;
         this.maxHp = this.hp;
@@ -214,13 +214,14 @@ class EnemyShip extends Enemy {
         this.active = true;
 
         // Visual
-        this.engineFlicker = 0;
-        this.hue = tier === 1 ? Utils.randomInt(320, 360) : Utils.randomInt(260, 290);
+        this.time = 0;
+        this.legPhase = Math.random() * Math.PI * 2;
+        this.hue = tier === 1 ? Utils.randomInt(0, 30) : Utils.randomInt(260, 290);
     }
 
     update(dt, playerY, projectilePool, audio) {
         super.update(dt);
-        this.engineFlicker += dt * 20;
+        this.time += dt;
 
         // Drift toward player's Y
         if (playerY !== null) {
@@ -253,54 +254,89 @@ class EnemyShip extends Enemy {
         ctx.translate(this.x, this.y);
 
         const r = this.radius;
-        const flicker = 0.7 + 0.3 * Math.sin(this.engineFlicker);
+        const t = this.time;
+        const hsl = `hsl(${this.hue}, 80%, 50%)`;
+        const hslDim = `hsl(${this.hue}, 60%, 25%)`;
+        const hslBright = `hsl(${this.hue}, 100%, 70%)`;
 
-        // Engine glow (always drawn)
-        ctx.fillStyle = `rgba(255, 50, 50, ${0.3 * flicker})`;
-        ctx.shadowColor = '#ff3333';
-        ctx.shadowBlur = 8 * flicker;
+        // Legs — 3 per side, scuttling animation
+        ctx.strokeStyle = hslDim;
+        ctx.lineWidth = this.tier === 2 ? 2 : 1.5;
+        ctx.lineCap = 'round';
+        for (let side = -1; side <= 1; side += 2) {
+            for (let i = 0; i < 3; i++) {
+                const phase = this.legPhase + i * 1.2 + (side > 0 ? Math.PI * 0.5 : 0);
+                const wave = Math.sin(t * 10 + phase) * 0.25;
+                const baseAngle = side * 0.5 + (i - 1) * 0.4;
+                const jx = Math.cos(baseAngle + wave) * r * 0.6;
+                const jy = Math.sin(baseAngle + wave) * r * 0.6 * side;
+                const tx = Math.cos(baseAngle + wave + side * 0.3) * r * 1.1;
+                const ty = Math.sin(baseAngle + wave + side * 0.3) * r * 0.9 * side;
+                ctx.beginPath();
+                ctx.moveTo(0, side * r * 0.1);
+                ctx.lineTo(jx, jy);
+                ctx.lineTo(tx, ty);
+                ctx.stroke();
+            }
+        }
+
+        // Antennae
+        ctx.strokeStyle = hsl;
+        ctx.lineWidth = 1;
+        const antWave = Math.sin(t * 4) * 0.2;
         ctx.beginPath();
-        ctx.moveTo(r * 0.3, -3);
-        ctx.lineTo(r * 0.3 + 10 * flicker, 0);
-        ctx.lineTo(r * 0.3, 3);
-        ctx.closePath();
+        ctx.moveTo(-r * 0.4, -r * 0.15);
+        ctx.quadraticCurveTo(-r * 0.8, -r * 0.6 - antWave * r, -r * 0.9, -r * 0.5);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.4, r * 0.15);
+        ctx.quadraticCurveTo(-r * 0.8, r * 0.6 + antWave * r, -r * 0.9, r * 0.5);
+        ctx.stroke();
+        // Antenna tips
+        ctx.fillStyle = hslBright;
+        ctx.shadowColor = hslBright;
+        ctx.shadowBlur = 4;
+        ctx.beginPath(); ctx.arc(-r * 0.9, -r * 0.5, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-r * 0.9, r * 0.5, 2, 0, Math.PI * 2); ctx.fill();
+
+        // Segmented body — head + abdomen
+        ctx.shadowBlur = 0;
+        // Abdomen (rear)
+        const abdGrad = ctx.createRadialGradient(r * 0.15, 0, 0, r * 0.15, 0, r * 0.5);
+        abdGrad.addColorStop(0, hsl);
+        abdGrad.addColorStop(1, hslDim);
+        ctx.fillStyle = abdGrad;
+        ctx.beginPath();
+        ctx.ellipse(r * 0.15, 0, r * 0.5, r * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Shell pattern
+        ctx.strokeStyle = `hsla(${this.hue}, 60%, 40%, 0.5)`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(r * 0.25, 0, r * 0.2, r * 0.15, 0.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Head (front)
+        const headGrad = ctx.createRadialGradient(-r * 0.3, 0, 0, -r * 0.3, 0, r * 0.35);
+        headGrad.addColorStop(0, hslBright);
+        headGrad.addColorStop(1, hslDim);
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.3, 0, r * 0.35, r * 0.28, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ship body — sprite or Canvas fallback
-        const spriteKey = this.tier === 2 ? 'enemyLarge' : 'enemySmall';
-        if (this.assets[spriteKey]) {
-            const img = this.assets[spriteKey];
-            const drawH = r * 2.2;
-            const drawW = drawH * (img.width / img.height);
-            ctx.save();
-            ctx.rotate(-Math.PI / 2); // sprite faces up → rotate to face left
-            ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-            ctx.restore();
-        } else {
-            const hsl = `hsl(${this.hue}, 100%, 50%)`;
-            const hslDim = `hsl(${this.hue}, 80%, 30%)`;
-
-            ctx.fillStyle = hslDim;
-            ctx.strokeStyle = hsl;
-            ctx.shadowColor = hsl;
-            ctx.shadowBlur = 6;
-            ctx.lineWidth = 1.5;
-
-            ctx.beginPath();
-            ctx.moveTo(-r, 0);
-            ctx.lineTo(r * 0.4, -r * 0.7);
-            ctx.lineTo(r * 0.3, 0);
-            ctx.lineTo(r * 0.4, r * 0.7);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = hsl;
-            ctx.shadowBlur = 3;
-            ctx.beginPath();
-            ctx.arc(-r * 0.3, 0, r * 0.15, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        // Eyes — beady, glowing
+        const eyePulse = 0.7 + 0.3 * Math.sin(t * 5);
+        ctx.fillStyle = '#ffee00';
+        ctx.shadowColor = '#ffee00';
+        ctx.shadowBlur = 5 * eyePulse;
+        ctx.beginPath(); ctx.arc(-r * 0.45, -r * 0.12, r * 0.07, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-r * 0.45, r * 0.12, r * 0.07, 0, Math.PI * 2); ctx.fill();
+        // Pupils
+        ctx.fillStyle = '#220000';
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(-r * 0.47, -r * 0.12, r * 0.03, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-r * 0.47, r * 0.12, r * 0.03, 0, Math.PI * 2); ctx.fill();
 
         // Health bar (if damaged)
         if (this.hp < this.maxHp) {
@@ -319,7 +355,7 @@ class EnemyShip extends Enemy {
 }
 
 // ============================================================
-// Drone — Tiny, fast, sine-wave flight, appears in groups
+// Drone (Space Firefly) — Tiny bioluminescent insect, swarms
 // ============================================================
 class Drone extends Enemy {
     constructor(canvasW, canvasH, offsetY = 0) {
@@ -342,7 +378,8 @@ class Drone extends Enemy {
 
         // Visual
         this.pulseTime = 0;
-        this.hue = Utils.randomInt(90, 140); // green family
+        this.hue = Utils.randomInt(50, 80); // warm yellow-green bioluminescence
+        this.wingPhase = Math.random() * Math.PI * 2;
         this.active = true;
     }
 
@@ -356,42 +393,68 @@ class Drone extends Enemy {
     draw(ctx) {
         if (!this.active) return;
         const r = this.radius;
-        const pulse = 0.7 + 0.3 * Math.sin(this.pulseTime * 8);
-        const hsl = `hsl(${this.hue}, 100%, 55%)`;
-        const hslDim = `hsl(${this.hue}, 80%, 30%)`;
+        const t = this.pulseTime;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 6);
+        const hsl = `hsl(${this.hue}, 100%, ${55 + 20 * pulse}%)`;
+        const hslDim = `hsl(${this.hue}, 60%, 20%)`;
 
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Diamond body
-        ctx.fillStyle = hslDim;
-        ctx.strokeStyle = hsl;
+        // Bioluminescent glow aura
+        ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${0.15 * pulse})`;
         ctx.shadowColor = hsl;
-        ctx.shadowBlur = 6 * pulse;
-        ctx.lineWidth = 1;
-
+        ctx.shadowBlur = 12 * pulse;
         ctx.beginPath();
-        ctx.moveTo(-r, 0);
-        ctx.lineTo(0, -r * 0.6);
-        ctx.lineTo(r, 0);
-        ctx.lineTo(0, r * 0.6);
-        ctx.closePath();
+        ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
 
-        // Core glow
+        // Wings — rapid flutter
+        const wingAngle = Math.sin(t * 25 + this.wingPhase) * 0.6;
+        ctx.fillStyle = `hsla(${this.hue}, 80%, 50%, 0.3)`;
+        ctx.shadowBlur = 3;
+        // Upper wing
+        ctx.save();
+        ctx.rotate(-wingAngle);
+        ctx.beginPath();
+        ctx.ellipse(r * 0.1, -r * 0.3, r * 0.8, r * 0.25, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        // Lower wing
+        ctx.save();
+        ctx.rotate(wingAngle);
+        ctx.beginPath();
+        ctx.ellipse(r * 0.1, r * 0.3, r * 0.8, r * 0.25, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Body — small oval
+        ctx.fillStyle = hslDim;
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.5, r * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glowing abdomen
         ctx.fillStyle = hsl;
-        ctx.shadowBlur = 4 * pulse;
+        ctx.shadowColor = hsl;
+        ctx.shadowBlur = 8 * pulse;
         ctx.beginPath();
-        ctx.arc(0, 0, r * 0.2, 0, Math.PI * 2);
+        ctx.arc(r * 0.2, 0, r * 0.2, 0, Math.PI * 2);
         ctx.fill();
+
+        // Eyes — tiny dots
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 2;
+        ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.08, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-r * 0.3, r * 0.08, 1.5, 0, Math.PI * 2); ctx.fill();
 
         ctx.restore();
     }
 }
 
 // ============================================================
-// Bomber — Slow, heavy, drops spread projectiles
+// Bomber (Space Octopus) — Tentacled alien, drops ink bombs
 // ============================================================
 class Bomber extends Enemy {
     constructor(canvasW, canvasH) {
@@ -407,25 +470,26 @@ class Bomber extends Enemy {
         this.vx = Utils.random(-70, -35);
         this.vy = 0;
 
-        // Bomb drop
+        // Ink bomb drop
         this.shootTimer = Utils.random(1, 2.5);
         this.shootInterval = Utils.random(2, 3.5);
         this.canvas_w = canvasW;
 
         // Visual
-        this.engineTime = 0;
+        this.time = 0;
+        this.tentacleCount = 6;
         this.active = true;
     }
 
     update(dt, playerY, projectilePool, audio) {
         this.x += this.vx * dt;
-        this.engineTime += dt * 10;
+        this.time += dt;
 
-        // Slow vertical drift
-        this.vy = Math.sin(this.engineTime * 0.3) * 20;
+        // Undulating vertical drift
+        this.vy = Math.sin(this.time * 1.5) * 25;
         this.y += this.vy * dt;
 
-        // Drop bombs
+        // Drop ink bombs
         this.shootTimer -= dt;
         if (this.shootTimer <= 0 && this.x < this.canvas_w - 50) {
             this.shootTimer = this.shootInterval;
@@ -434,7 +498,7 @@ class Bomber extends Enemy {
     }
 
     dropBombs(projectilePool, audio) {
-        // 3-shot spread: left, down-left, down
+        // 3-shot spread: ink blobs
         const angles = [-Math.PI * 0.85, -Math.PI, Math.PI * 0.85];
         const speed = 200;
         for (const angle of angles) {
@@ -442,7 +506,7 @@ class Bomber extends Enemy {
             if (p) {
                 p.init(this.x, this.y + this.radius * 0.5,
                     Math.cos(angle) * speed, Math.sin(angle) * speed,
-                    '#ff8800', '#ff6600', true);
+                    '#8833cc', '#6622aa', true);
             }
         }
         if (audio) audio.playEnemyLaser();
@@ -451,46 +515,74 @@ class Bomber extends Enemy {
     draw(ctx) {
         if (!this.active) return;
         const r = this.radius;
-        const flicker = 0.7 + 0.3 * Math.sin(this.engineTime);
+        const t = this.time;
 
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Engine glow
-        ctx.fillStyle = `rgba(255, 120, 0, ${0.4 * flicker})`;
-        ctx.shadowColor = '#ff8800';
-        ctx.shadowBlur = 8 * flicker;
+        // Tentacles — flowing, animated
+        ctx.lineCap = 'round';
+        for (let i = 0; i < this.tentacleCount; i++) {
+            const angle = (i / this.tentacleCount) * Math.PI * 1.4 + Math.PI * 0.3;
+            const wave1 = Math.sin(t * 3 + i * 1.2) * 0.3;
+            const wave2 = Math.sin(t * 2.5 + i * 0.8) * 0.2;
+            const startX = Math.cos(angle) * r * 0.5;
+            const startY = Math.sin(angle) * r * 0.5;
+            const midX = Math.cos(angle + wave1) * r * 1.1;
+            const midY = Math.sin(angle + wave1) * r * 1.1;
+            const endX = Math.cos(angle + wave1 + wave2) * r * 1.6;
+            const endY = Math.sin(angle + wave1 + wave2) * r * 1.4;
+
+            ctx.strokeStyle = `hsla(275, 60%, ${35 + i * 3}%, 0.7)`;
+            ctx.lineWidth = 3 - i * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.quadraticCurveTo(midX, midY, endX, endY);
+            ctx.stroke();
+
+            // Sucker dots along tentacle
+            ctx.fillStyle = `hsla(275, 50%, 50%, 0.4)`;
+            ctx.beginPath();
+            ctx.arc(midX, midY, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Head — bulbous dome
+        const headGrad = ctx.createRadialGradient(-r * 0.1, -r * 0.15, 0, 0, 0, r * 0.7);
+        headGrad.addColorStop(0, '#bb66ee');
+        headGrad.addColorStop(0.5, '#7722aa');
+        headGrad.addColorStop(1, '#3a1155');
+        ctx.fillStyle = headGrad;
+        ctx.shadowColor = '#aa44ff';
+        ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.moveTo(r * 0.5, -5);
-        ctx.lineTo(r * 0.5 + 12 * flicker, 0);
-        ctx.lineTo(r * 0.5, 5);
-        ctx.closePath();
+        ctx.ellipse(0, -r * 0.1, r * 0.65, r * 0.55, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bulky hull — wide hexagonal shape
-        ctx.fillStyle = '#3a2050';
-        ctx.strokeStyle = '#aa55ff';
-        ctx.shadowColor = '#aa55ff';
-        ctx.shadowBlur = 5;
-        ctx.lineWidth = 1.5;
+        // Mantle pattern — bioluminescent spots
+        const spotPulse = 0.4 + 0.6 * Math.sin(t * 2);
+        ctx.fillStyle = `rgba(200, 150, 255, ${0.3 * spotPulse})`;
+        ctx.beginPath(); ctx.arc(-r * 0.2, -r * 0.25, r * 0.1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(r * 0.15, -r * 0.2, r * 0.07, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -r * 0.35, r * 0.06, 0, Math.PI * 2); ctx.fill();
 
+        // Eyes — large, intelligent
+        ctx.shadowBlur = 0;
+        // Eye whites
+        ctx.fillStyle = '#eeddff';
         ctx.beginPath();
-        ctx.moveTo(-r, 0);
-        ctx.lineTo(-r * 0.6, -r * 0.8);
-        ctx.lineTo(r * 0.3, -r * 0.7);
-        ctx.lineTo(r * 0.5, 0);
-        ctx.lineTo(r * 0.3, r * 0.7);
-        ctx.lineTo(-r * 0.6, r * 0.8);
-        ctx.closePath();
+        ctx.ellipse(-r * 0.22, -r * 0.05, r * 0.16, r * 0.12, -0.1, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
-
-        // Bomb bay indicator
-        ctx.fillStyle = '#ff8800';
-        ctx.shadowColor = '#ff8800';
-        ctx.shadowBlur = 4;
         ctx.beginPath();
-        ctx.arc(-r * 0.2, 0, r * 0.15, 0, Math.PI * 2);
+        ctx.ellipse(r * 0.18, -r * 0.05, r * 0.16, r * 0.12, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        // Pupils — rectangular like octopus
+        ctx.fillStyle = '#110022';
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.22, -r * 0.03, r * 0.04, r * 0.09, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(r * 0.18, -r * 0.03, r * 0.04, r * 0.09, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Health bar
@@ -510,7 +602,7 @@ class Bomber extends Enemy {
 }
 
 // ============================================================
-// SpaceMine — Drifts slowly, detonates near player
+// SpaceMine (Space Jellyfish) — Drifts, stings on proximity
 // ============================================================
 class SpaceMine extends Enemy {
     constructor(canvasW, canvasH) {
@@ -526,23 +618,21 @@ class SpaceMine extends Enemy {
         this.vx = Utils.random(-80, -30);
         this.vy = Utils.random(-15, 15);
 
-        // Proximity detonation
+        // Proximity sting
         this.detonateRadius = 80;
         this.detonated = false;
 
         // Visual
-        this.pulseTime = Math.random() * Math.PI * 2;
-        this.spikes = Utils.randomInt(6, 10);
-        this.rotation = 0;
-        this.rotSpeed = Utils.random(-2, 2);
+        this.time = Math.random() * Math.PI * 2;
+        this.tentacleCount = Utils.randomInt(5, 8);
+        this.hue = Utils.randomInt(300, 340); // pink-magenta
         this.active = true;
     }
 
     update(dt, playerY, projectilePool, audio, playerX) {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
-        this.pulseTime += dt;
-        this.rotation += this.rotSpeed * dt;
+        this.time += dt;
 
         // Proximity detonation check
         if (playerX !== undefined && playerY !== undefined && !this.detonated) {
@@ -555,7 +645,7 @@ class SpaceMine extends Enemy {
 
     detonate(projectilePool, audio) {
         this.detonated = true;
-        // Fire projectiles in a ring
+        // Fire stinger projectiles in a ring
         const count = 8;
         const speed = 220;
         for (let i = 0; i < count; i++) {
@@ -564,7 +654,7 @@ class SpaceMine extends Enemy {
             if (p) {
                 p.init(this.x, this.y,
                     Math.cos(angle) * speed, Math.sin(angle) * speed,
-                    '#ff2222', '#ff4444', true);
+                    '#ff66cc', '#ff44aa', true);
             }
         }
         if (audio) audio.playExplosion();
@@ -574,54 +664,69 @@ class SpaceMine extends Enemy {
     draw(ctx) {
         if (!this.active) return;
         const r = this.radius;
-        const pulse = 0.5 + 0.5 * Math.sin(this.pulseTime * 4);
-        const dangerPulse = 0.6 + 0.4 * Math.sin(this.pulseTime * 6);
+        const t = this.time;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
 
-        // Outer warning ring
-        ctx.strokeStyle = `rgba(255, 40, 40, ${pulse * 0.3})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 1.5, 0, Math.PI * 2);
-        ctx.stroke();
+        // Trailing tentacles — flowing downward
+        ctx.lineCap = 'round';
+        for (let i = 0; i < this.tentacleCount; i++) {
+            const tentAngle = (i / this.tentacleCount) * Math.PI * 0.8 + Math.PI * 0.6;
+            const wave = Math.sin(t * 2.5 + i * 1.5) * 0.4;
+            const len1 = r * 1.2;
+            const len2 = r * (1.8 + 0.3 * Math.sin(t * 1.5 + i));
+            const mx = Math.cos(tentAngle + wave * 0.5) * len1;
+            const my = Math.sin(tentAngle + wave * 0.5) * len1;
+            const ex = Math.cos(tentAngle + wave) * len2;
+            const ey = Math.sin(tentAngle + wave) * len2;
 
-        // Spiky body
-        ctx.fillStyle = `hsl(0, 70%, ${25 + 10 * dangerPulse}%)`;
-        ctx.strokeStyle = `rgba(255, 80, 80, ${0.6 + 0.4 * dangerPulse})`;
-        ctx.shadowColor = '#ff3333';
-        ctx.shadowBlur = 6 * dangerPulse;
-        ctx.lineWidth = 1;
-
-        ctx.beginPath();
-        for (let i = 0; i < this.spikes * 2; i++) {
-            const angle = (i / (this.spikes * 2)) * Math.PI * 2;
-            const spikeR = i % 2 === 0 ? r : r * 0.55;
-            const sx = Math.cos(angle) * spikeR;
-            const sy = Math.sin(angle) * spikeR;
-            if (i === 0) ctx.moveTo(sx, sy);
-            else ctx.lineTo(sx, sy);
+            ctx.strokeStyle = `hsla(${this.hue}, 70%, 60%, ${0.4 + 0.2 * pulse})`;
+            ctx.lineWidth = 1.5 - i * 0.1;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(tentAngle) * r * 0.4, Math.sin(tentAngle) * r * 0.4);
+            ctx.quadraticCurveTo(mx, my, ex, ey);
+            ctx.stroke();
         }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
 
-        // Blinking center light
-        ctx.fillStyle = dangerPulse > 0.8 ? '#ff4444' : '#881111';
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = dangerPulse > 0.8 ? 10 : 2;
+        // Bell/dome — translucent
+        const bellGrad = ctx.createRadialGradient(0, -r * 0.1, 0, 0, 0, r * 0.6);
+        bellGrad.addColorStop(0, `hsla(${this.hue}, 80%, 80%, ${0.6 + 0.2 * pulse})`);
+        bellGrad.addColorStop(0.6, `hsla(${this.hue}, 60%, 50%, 0.4)`);
+        bellGrad.addColorStop(1, `hsla(${this.hue}, 50%, 30%, 0.15)`);
+        ctx.fillStyle = bellGrad;
+        ctx.shadowColor = `hsl(${this.hue}, 80%, 60%)`;
+        ctx.shadowBlur = 8 * pulse;
+
+        // Bell shape — dome on top, flat-ish bottom
         ctx.beginPath();
-        ctx.arc(0, 0, r * 0.2, 0, Math.PI * 2);
+        ctx.arc(0, 0, r * 0.55, Math.PI, 0);
+        ctx.quadraticCurveTo(r * 0.55, r * 0.2, r * 0.3, r * 0.25);
+        ctx.lineTo(-r * 0.3, r * 0.25);
+        ctx.quadraticCurveTo(-r * 0.55, r * 0.2, -r * 0.55, 0);
         ctx.fill();
+
+        // Inner glow pattern
+        ctx.fillStyle = `hsla(${this.hue + 30}, 100%, 70%, ${0.3 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(0, -r * 0.1, r * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Proximity warning — subtle glow when player is near
+        ctx.strokeStyle = `hsla(${this.hue}, 80%, 70%, ${pulse * 0.2})`;
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.3, 0, Math.PI * 2);
+        ctx.stroke();
 
         ctx.restore();
     }
 }
 
 // ============================================================
-// StealthFighter — Fast, fades in/out, zigzag movement
+// StealthFighter (Space Chameleon) — Color-shifting lizard alien
 // ============================================================
 class StealthFighter extends Enemy {
     constructor(canvasW, canvasH) {
@@ -643,15 +748,17 @@ class StealthFighter extends Enemy {
         this.zigSpeed = Utils.random(120, 200);
         this.canvasH = canvasH;
 
-        // Stealth cloak
+        // Stealth cloak — color shifting
         this.time = 0;
-        this.cloakCycle = Utils.random(2, 4); // seconds per cloak cycle
+        this.cloakCycle = Utils.random(2, 4);
+        this.hueShift = Utils.random(0, 360);
         this.active = true;
     }
 
     update(dt) {
         this.time += dt;
         this.x += this.vx * dt;
+        this.hueShift += dt * 60; // color shifts over time
 
         // Zigzag
         this.zigTimer += dt;
@@ -664,9 +771,7 @@ class StealthFighter extends Enemy {
     }
 
     getAlpha() {
-        // Oscillate between nearly invisible and semi-visible
         const t = (this.time % this.cloakCycle) / this.cloakCycle;
-        // Visible for a brief window, invisible most of the time
         const wave = Math.sin(t * Math.PI * 2);
         return wave > 0.3 ? 0.15 + 0.85 * ((wave - 0.3) / 0.7) : 0.15;
     }
@@ -674,35 +779,85 @@ class StealthFighter extends Enemy {
     draw(ctx) {
         if (!this.active) return;
         const r = this.radius;
+        const t = this.time;
         const alpha = this.getAlpha();
+        const hue = this.hueShift % 360;
+        const bodyColor = `hsla(${hue}, 60%, 35%, ${alpha})`;
+        const spotColor = `hsla(${(hue + 120) % 360}, 80%, 50%, ${alpha * 0.6})`;
 
         ctx.save();
         ctx.translate(this.x, this.y);
+
+        // Curled tail
         ctx.globalAlpha = alpha;
-
-        // Sleek angular ship
-        ctx.fillStyle = '#1a3a4a';
-        ctx.strokeStyle = '#00cccc';
-        ctx.shadowColor = '#00cccc';
-        ctx.shadowBlur = 8 * alpha;
-        ctx.lineWidth = 1;
-
+        ctx.strokeStyle = bodyColor;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        const tailCurl = Math.sin(t * 3) * 0.3;
         ctx.beginPath();
-        ctx.moveTo(-r * 1.1, 0);
-        ctx.lineTo(-r * 0.2, -r * 0.5);
-        ctx.lineTo(r * 0.5, -r * 0.3);
-        ctx.lineTo(r * 0.5, r * 0.3);
-        ctx.lineTo(-r * 0.2, r * 0.5);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(r * 0.4, 0);
+        ctx.quadraticCurveTo(r * 0.9, r * 0.2, r * 1.1, -r * 0.1 + tailCurl * r);
+        ctx.quadraticCurveTo(r * 1.2, -r * 0.4 + tailCurl * r, r * 1.0, -r * 0.5 + tailCurl * r);
         ctx.stroke();
 
-        // Glowing eye
-        ctx.fillStyle = '#00ffff';
-        ctx.shadowBlur = 6;
+        // Body — lizard shape
+        const bodyGrad = ctx.createRadialGradient(-r * 0.1, 0, 0, 0, 0, r * 0.6);
+        bodyGrad.addColorStop(0, `hsla(${hue}, 50%, 45%, ${alpha})`);
+        bodyGrad.addColorStop(1, `hsla(${hue}, 60%, 20%, ${alpha})`);
+        ctx.fillStyle = bodyGrad;
+        ctx.shadowColor = `hsl(${hue}, 70%, 50%)`;
+        ctx.shadowBlur = 4 * alpha;
         ctx.beginPath();
-        ctx.arc(-r * 0.3, 0, r * 0.1, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, r * 0.6, r * 0.35, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        // Head
+        ctx.fillStyle = `hsla(${hue}, 55%, 40%, ${alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.5, 0, r * 0.35, r * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Snout
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.75, 0, r * 0.15, r * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Color-shift spots on body
+        ctx.fillStyle = spotColor;
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(r * 0.1, -r * 0.1, r * 0.07, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-r * 0.1, r * 0.12, r * 0.06, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(r * 0.25, r * 0.05, r * 0.05, 0, Math.PI * 2); ctx.fill();
+
+        // Legs — stubby, lizard-like
+        ctx.strokeStyle = bodyColor;
+        ctx.lineWidth = 2;
+        const legWave = Math.sin(t * 8) * 0.2;
+        // Front legs
+        ctx.beginPath(); ctx.moveTo(-r * 0.3, -r * 0.3); ctx.lineTo(-r * 0.5, -r * 0.6 - legWave * r); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-r * 0.3, r * 0.3); ctx.lineTo(-r * 0.5, r * 0.6 + legWave * r); ctx.stroke();
+        // Back legs
+        ctx.beginPath(); ctx.moveTo(r * 0.2, -r * 0.3); ctx.lineTo(r * 0.4, -r * 0.6 + legWave * r); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(r * 0.2, r * 0.3); ctx.lineTo(r * 0.4, r * 0.6 - legWave * r); ctx.stroke();
+
+        // Eye — large, rotating independently
+        const eyeAngle = Math.sin(t * 2) * 0.5;
+        ctx.fillStyle = `hsla(55, 100%, 60%, ${alpha})`;
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 5 * alpha;
+        ctx.beginPath();
+        ctx.arc(-r * 0.55, -r * 0.12, r * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        // Pupil — slit
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.shadowBlur = 0;
+        ctx.save();
+        ctx.translate(-r * 0.55, -r * 0.12);
+        ctx.rotate(eyeAngle);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.02, r * 0.07, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
 
         ctx.globalAlpha = 1;
 
@@ -1273,11 +1428,14 @@ class Boss extends Enemy {
     constructor(canvasW, canvasH, bossType = 0) {
         super();
         this.type = 'boss';
-        this.bossType = Utils.clamp(bossType, 0, 7);
-        this.radius = 45;
-        this.hp = 20 + this.bossType * 10;
+        this.bossType = Utils.clamp(bossType, 0, 9);
+        this.radius = 30 + this.bossType * 2; // smaller early, bigger late
+
+        // HP scales gently: easy bosses (8-18), medium (24-36), hard (44-60)
+        const hpTable = [8, 12, 16, 20, 24, 30, 38, 46, 54, 64];
+        this.hp = hpTable[this.bossType] || 8;
         this.maxHp = this.hp;
-        this.points = 500 + this.bossType * 200;
+        this.points = 200 + this.bossType * 150;
 
         // Spawn from right, move to x = canvasW * 0.75 then stop
         this.x = canvasW + this.radius + 60;
@@ -1289,29 +1447,45 @@ class Boss extends Enemy {
         this.stopX = canvasW * 0.75;
         this.arrived = false;
 
-        // Attack pattern cycling
-        this.patternIndex = 0;       // 0 = aimed, 1 = spiral, 2 = barrage
+        // Attack patterns scale with boss type
+        // Easy bosses: only 1-2 patterns, slow cycle
+        // Hard bosses: all 3 patterns, fast cycle
+        this.patternIndex = 0;
         this.patternTimer = 0;
-        this.patternInterval = 2.5;  // seconds between pattern switches
-        this.spiralAngle = 0;        // running angle for spiral pattern
+        if (this.bossType <= 2) {
+            this.patternInterval = 3.5; // slow attacks
+            this.maxPatterns = 1;       // aimed only
+        } else if (this.bossType <= 5) {
+            this.patternInterval = 3.0;
+            this.maxPatterns = 2;       // aimed + barrage
+        } else {
+            this.patternInterval = 2.2;
+            this.maxPatterns = 3;       // all patterns
+        }
+        this.spiralAngle = 0;
+
+        // Bullet speed scales with boss type
+        this.bulletSpeedMul = 0.6 + this.bossType * 0.05; // 0.6x to 1.05x
 
         // Visual timers
         this.time = 0;
         this.corePhase = 0;
         this.shieldRotation = 0;
 
-        // Boss theme colors indexed by bossType 0-7
+        // Boss theme colors indexed by bossType 0-9
         this.themeColors = [
-            '#ff2222', // red
-            '#aa22ff', // purple
-            '#22ff44', // green
-            '#ff8800', // orange
-            '#00dddd', // cyan
-            '#ff22ff', // magenta
-            '#ffdd00', // yellow
-            '#ffffff'  // white
+            '#aa7733', // bronze (asteroid boss)
+            '#ff6644', // orange-red (scout boss)
+            '#44ff66', // green (drone boss)
+            '#ff4444', // red (mine boss)
+            '#66ff22', // lime (spider boss)
+            '#bb66ff', // purple (ghost boss)
+            '#aa55ff', // violet (bomber boss)
+            '#00cccc', // cyan (stealth boss)
+            '#ff4400', // fire (devil boss)
+            '#ff3366'  // magenta (chaos boss)
         ];
-        this.color = this.themeColors[this.bossType];
+        this.color = this.themeColors[this.bossType] || '#ffffff';
 
         this.active = true;
     }
@@ -1339,21 +1513,20 @@ class Boss extends Enemy {
             this.patternTimer += dt;
             if (this.patternTimer >= this.patternInterval) {
                 this.patternTimer = 0;
-                this.patternIndex = (this.patternIndex + 1) % 3;
+                this.patternIndex = (this.patternIndex + 1) % this.maxPatterns;
             }
 
             // Fire based on current pattern
-            // Fire once per pattern switch (at start of each pattern window)
             if (this.patternTimer < dt * 1.5) {
                 switch (this.patternIndex) {
                     case 0:
                         this.fireAimed(playerY, projectilePool, audio);
                         break;
                     case 1:
-                        this.fireSpiral(projectilePool, audio);
+                        this.fireBarrage(projectilePool, audio);
                         break;
                     case 2:
-                        this.fireBarrage(projectilePool, audio);
+                        this.fireSpiral(projectilePool, audio);
                         break;
                 }
             }
@@ -1364,15 +1537,16 @@ class Boss extends Enemy {
     }
 
     fireAimed(playerY, projectilePool, audio) {
-        // Pattern 1: 3 fast projectiles aimed at player Y
-        const speed = 400;
-        for (let i = -1; i <= 1; i++) {
+        const speed = 400 * this.bulletSpeedMul;
+        // Easy bosses fire 1-2 projectiles, hard bosses fire 3
+        const count = this.bossType <= 2 ? 1 : this.bossType <= 5 ? 2 : 3;
+        const spread = count === 1 ? [0] : count === 2 ? [-1, 1] : [-1, 0, 1];
+        for (const i of spread) {
             const p = projectilePool.get();
             if (p) {
                 const dy = (playerY !== undefined && playerY !== null)
                     ? (playerY - this.y) + i * 30
                     : i * 40;
-                const angle = Math.atan2(dy, -(this.x));
                 p.init(this.x - this.radius, this.y + i * 12,
                     -speed, dy * 0.8,
                     this.color, '#ff4444', true);
@@ -1382,9 +1556,9 @@ class Boss extends Enemy {
     }
 
     fireSpiral(projectilePool, audio) {
-        // Pattern 2: 8 projectiles in a rotating ring
-        const count = 8;
-        const speed = 250;
+        // Only used by hard bosses (type 6+) — rotating ring
+        const count = 4 + this.bossType; // 10-13 for hard bosses
+        const speed = 250 * this.bulletSpeedMul;
         for (let i = 0; i < count; i++) {
             const angle = this.spiralAngle + (i / count) * Math.PI * 2;
             const p = projectilePool.get();
@@ -1398,11 +1572,13 @@ class Boss extends Enemy {
     }
 
     fireBarrage(projectilePool, audio) {
-        // Pattern 3: Dense spread of 5 bullets forward
-        const speed = 320;
-        const spreadAngle = 0.5; // total spread in radians
-        for (let i = 0; i < 5; i++) {
-            const angle = Math.PI + (i - 2) * (spreadAngle / 4);
+        const speed = 320 * this.bulletSpeedMul;
+        // Easy/medium bosses fire 2-3, hard bosses fire 5
+        const count = this.bossType <= 3 ? 2 : this.bossType <= 6 ? 3 : 5;
+        const spreadAngle = 0.5;
+        for (let i = 0; i < count; i++) {
+            const center = (count - 1) / 2;
+            const angle = Math.PI + (i - center) * (spreadAngle / Math.max(count - 1, 1));
             const p = projectilePool.get();
             if (p) {
                 p.init(this.x - this.radius, this.y,
@@ -1602,21 +1778,25 @@ class Boss extends Enemy {
 // ============================================================
 // Phase definitions — each phase has a featured enemy and a score threshold
 const PHASES = [
+    // Phases 1-5: easy — gentle intro, one new enemy type per phase
     { name: 'ASTEROID FIELD',     threshold: 0,    featured: 'asteroid',  color: '#aa7733' },
-    { name: 'DRONE SWARM',        threshold: 300,  featured: 'drone',     color: '#44ff66' },
-    { name: 'ARACHNID SECTOR',    threshold: 700,  featured: 'spider',    color: '#66ff22' },
-    { name: 'GHOST NEBULA',       threshold: 1200, featured: 'ghost',     color: '#bb66ff' },
-    { name: 'BOMBER WING',        threshold: 1800, featured: 'bomber',    color: '#aa55ff' },
-    { name: 'STEALTH ZONE',       threshold: 2500, featured: 'stealth',   color: '#00cccc' },
-    { name: 'DEVIL\'S DOMAIN',    threshold: 3500, featured: 'devil',     color: '#ff4400' },
-    { name: 'TOTAL CHAOS',        threshold: 5000, featured: 'all',       color: '#ff3366' }
+    { name: 'CRITTER COLONY',     threshold: 200,  featured: 'ship',      color: '#ff6644' },
+    { name: 'FIREFLY SWARM',      threshold: 500,  featured: 'drone',     color: '#44ff66' },
+    { name: 'JELLYFISH DRIFT',    threshold: 900,  featured: 'mine',      color: '#ff88cc' },
+    { name: 'ARACHNID SECTOR',    threshold: 1400, featured: 'spider',    color: '#66ff22' },
+    // Phases 6-10: difficulty ramps up
+    { name: 'GHOST NEBULA',       threshold: 2000, featured: 'ghost',     color: '#bb66ff' },
+    { name: 'OCTOPUS DEN',        threshold: 2800, featured: 'bomber',    color: '#cc44ff' },
+    { name: 'CHAMELEON VOID',     threshold: 3800, featured: 'stealth',   color: '#00cccc' },
+    { name: 'DEVIL\'S DOMAIN',    threshold: 5000, featured: 'devil',     color: '#ff4400' },
+    { name: 'TOTAL CHAOS',        threshold: 6500, featured: 'all',       color: '#ff3366' }
 ];
 
 class EnemySpawner {
     constructor(assets) {
         this.assets = assets || {};
         this.timer = 0;
-        this.baseInterval = 1.5;
+        this.baseInterval = 1.8;
         this.enemies = [];
         this.currentPhase = 0;
         this.phaseAnnouncedAt = -1; // score when last announcement was shown
@@ -1640,9 +1820,17 @@ class EnemySpawner {
         }
 
         const phaseInfo = PHASES[this.currentPhase];
-        const difficulty = Math.floor(score / 200);
-        const interval = Math.max(0.25, this.baseInterval - difficulty * 0.07);
-        const largeTier = difficulty >= 3 ? 0.2 : 0;
+        // Gentler difficulty curve: slow ramp in early phases, steeper after phase 5
+        let interval;
+        if (phase <= 4) {
+            // Easy phases: 1.8s down to ~1.2s (very gentle)
+            interval = Math.max(1.2, this.baseInterval - phase * 0.12);
+        } else {
+            // Hard phases: accelerate from 1.1s down to 0.35s
+            const hardPhase = phase - 5;
+            interval = Math.max(0.35, 1.1 - hardPhase * 0.15);
+        }
+        const largeTier = phase >= 5 ? 0.2 : 0;
 
         if (this.timer <= 0) {
             this.timer = interval + Utils.random(-0.3, 0.3);
@@ -1733,16 +1921,16 @@ class EnemySpawner {
     }
 
     spawnMixed(score, canvasW, canvasH, largeTier) {
-        // Build pool of available types based on score thresholds
+        // Build pool of available types — matches phase thresholds
         const pool = ['asteroid'];
-        if (score >= 100)  pool.push('ship');
-        if (score >= 300)  pool.push('drone');
-        if (score >= 500)  pool.push('mine');
-        if (score >= 700)  pool.push('spider');
-        if (score >= 1200) pool.push('ghost');
-        if (score >= 1800) pool.push('bomber');
-        if (score >= 2500) pool.push('stealth');
-        if (score >= 3500) pool.push('devil');
+        if (score >= 200)  pool.push('ship');
+        if (score >= 500)  pool.push('drone');
+        if (score >= 900)  pool.push('mine');
+        if (score >= 1400) pool.push('spider');
+        if (score >= 2000) pool.push('ghost');
+        if (score >= 2800) pool.push('bomber');
+        if (score >= 3800) pool.push('stealth');
+        if (score >= 5000) pool.push('devil');
 
         const pick = pool[Utils.randomInt(0, pool.length - 1)];
         this.spawnByType(pick, canvasW, canvasH, largeTier);
@@ -1756,6 +1944,6 @@ class EnemySpawner {
 
     reset() {
         this.enemies = [];
-        this.timer = 2; // grace period at start
+        this.timer = 3; // grace period at start
     }
 }

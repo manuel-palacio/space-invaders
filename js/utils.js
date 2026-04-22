@@ -306,330 +306,77 @@ class MusicManager {
         this.masterGain = masterGain;
         this.playing = false;
         this.intensity = 0.5;
-        this.nodes = [];          // all oscillators/sources to stop on stop()
-        this.gains = {};          // named gain nodes for intensity control
-        this.hitTimer = null;
+
+        // Track playlist — shuffled each game
+        this.tracks = [
+            'assets/TDTWWWA.mp3',
+            'assets/collectormaster.mp3',
+            'assets/discipline.mp3',
+            'assets/end.mp3'
+        ];
+        this.trackIndex = 0;
+
+        // Create Audio element and wire through Web Audio
+        this.audio = new Audio();
+        this.audio.volume = 0.5;
+
+        if (this.ctx) {
+            this.source = this.ctx.createMediaElementSource(this.audio);
+            this.gainNode = this.ctx.createGain();
+            this.gainNode.gain.value = 0.5;
+            this.source.connect(this.gainNode);
+            this.gainNode.connect(this.masterGain);
+        }
+
+        // When a track ends, pick a random different one
+        this.audio.addEventListener('ended', () => {
+            if (!this.playing) return;
+            this._playRandom();
+        });
+    }
+
+    _playRandom() {
+        // Pick a random track, avoiding the one that just played
+        let next;
+        do {
+            next = Math.floor(Math.random() * this.tracks.length);
+        } while (next === this.trackIndex && this.tracks.length > 1);
+        this.trackIndex = next;
+        this.audio.src = this.tracks[next];
+        this.audio.play().catch(() => {});
     }
 
     start() {
-        if (this.playing || !this.ctx) return;
+        if (this.playing) return;
 
-        // Ensure AudioContext is running (browser autoplay policy)
-        if (this.ctx.state === 'suspended') {
+        if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
 
         this.playing = true;
-
-        // ---- Master bus for all music layers ----
-        this.musicBus = this.ctx.createGain();
-        this.musicBus.gain.value = 0.55;          // audible but not overpowering
-        this.musicBus.connect(this.masterGain);
-
-        this._startBassDrone();
-        this._startMidPad();
-        this._startMidMelody();
-        this._scheduleIndustrialHit();
+        this.trackIndex = -1; // no previous track
+        this._playRandom();
     }
 
     stop() {
         if (!this.playing) return;
         this.playing = false;
-
-        // Stop all running oscillators / sources
-        const now = this.ctx.currentTime;
-        this.nodes.forEach(n => {
-            try { n.stop(now + 0.05); } catch (_) { /* already stopped */ }
-        });
-        this.nodes = [];
-
-        // Fade music bus out quickly
-        if (this.musicBus) {
-            this.musicBus.gain.linearRampToValueAtTime(0, now + 0.1);
-            setTimeout(() => {
-                try { this.musicBus.disconnect(); } catch (_) {}
-            }, 200);
-        }
-
-        if (this.hitTimer) {
-            clearTimeout(this.hitTimer);
-            this.hitTimer = null;
-        }
-        if (this._melodyInterval) {
-            clearInterval(this._melodyInterval);
-            this._melodyInterval = null;
-        }
-
-        this.gains = {};
+        this.audio.pause();
+        this.audio.currentTime = 0;
     }
 
     /**
-     * Set energy level 0-1.  0 = near-silent deep drone only,
-     * 1 = all layers at full designed volume.
+     * Set energy level 0-1. Scales volume from 0.3 (quiet) to 0.7 (full).
      */
     setIntensity(level) {
         this.intensity = Math.max(0, Math.min(1, level));
         if (!this.playing) return;
-        const now = this.ctx.currentTime;
-
-        // Bass drone: always present but scales 0.4 - 1.0
-        if (this.gains.bass) {
-            this.gains.bass.gain.linearRampToValueAtTime(
-                0.4 + this.intensity * 0.6, now + 0.3);
+        const vol = 0.3 + this.intensity * 0.4;
+        if (this.gainNode) {
+            this.gainNode.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 0.3);
+        } else {
+            this.audio.volume = vol;
         }
-        // Mid pad: scales 0 - 1
-        if (this.gains.pad) {
-            this.gains.pad.gain.linearRampToValueAtTime(
-                this.intensity, now + 0.3);
-        }
-        // Melody: scales 0.3 - 1
-        if (this.gains.melody) {
-            this.gains.melody.gain.linearRampToValueAtTime(
-                0.3 + this.intensity * 0.7, now + 0.3);
-        }
-        // Shimmer: scales 0.2 - 1
-        if (this.gains.shimmer) {
-            this.gains.shimmer.gain.linearRampToValueAtTime(
-                0.2 + this.intensity * 0.8, now + 0.3);
-        }
-    }
-
-    // ---- Layer 1: Deep bass drone ----
-    _startBassDrone() {
-        const now = this.ctx.currentTime;
-
-        // Primary sine drone
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = 45;
-
-        // Slow LFO modulating the drone pitch between ~40-55 Hz
-        const lfo = this.ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.07;              // very slow wobble
-
-        const lfoGain = this.ctx.createGain();
-        lfoGain.gain.value = 7;                   // +/- 7 Hz swing
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-
-        // Volume envelope
-        const gain = this.ctx.createGain();
-        gain.gain.value = 0.7;
-        this.gains.bass = gain;
-
-        // Subtle sub-harmonic layer for warmth
-        const sub = this.ctx.createOscillator();
-        sub.type = 'sine';
-        sub.frequency.value = 22.5;              // one octave below
-        const subGain = this.ctx.createGain();
-        subGain.gain.value = 0.3;
-
-        osc.connect(gain);
-        sub.connect(subGain);
-        subGain.connect(gain);
-        gain.connect(this.musicBus);
-
-        osc.start(now);
-        lfo.start(now);
-        sub.start(now);
-        this.nodes.push(osc, lfo, sub);
-    }
-
-    // ---- Layer 2: Pulsing mid-frequency pad ----
-    _startMidPad() {
-        const now = this.ctx.currentTime;
-
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.value = 140;
-
-        // Bandpass filter to keep only the narrow mid band
-        const bp = this.ctx.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.value = 160;
-        bp.Q.value = 4;
-
-        // Amplitude LFO for pulsing effect
-        const lfo = this.ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.25;              // gentle pulse
-
-        const lfoGain = this.ctx.createGain();
-        lfoGain.gain.value = 0.15;
-
-        const padGain = this.ctx.createGain();
-        padGain.gain.value = 0.20;               // audible pad volume
-
-        // Intensity multiplier
-        const intensityGain = this.ctx.createGain();
-        intensityGain.gain.value = this.intensity;
-        this.gains.pad = intensityGain;
-
-        // LFO modulates padGain amplitude
-        lfo.connect(lfoGain);
-        lfoGain.connect(padGain.gain);
-
-        osc.connect(bp);
-        bp.connect(padGain);
-        padGain.connect(intensityGain);
-        intensityGain.connect(this.musicBus);
-
-        osc.start(now);
-        lfo.start(now);
-        this.nodes.push(osc, lfo);
-    }
-
-    // ---- Layer 2b: Mid-range melody (audible on phone speakers) ----
-    _startMidMelody() {
-        if (!this.ctx) return;
-        // Slow dark arpeggio cycling through minor-key notes
-        const notes = [220, 261, 293, 220, 196, 233, 261, 196]; // Am-ish
-        let noteIdx = 0;
-
-        const osc = this.ctx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.value = notes[0];
-
-        // Slow LFO vibrato
-        const vibrato = this.ctx.createOscillator();
-        vibrato.type = 'sine';
-        vibrato.frequency.value = 4;
-        const vibratoGain = this.ctx.createGain();
-        vibratoGain.gain.value = 3;
-        vibrato.connect(vibratoGain);
-        vibratoGain.connect(osc.frequency);
-
-        // Bandpass to give it a muffled, distant feel
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 400;
-        filter.Q.value = 2;
-
-        const gain = this.ctx.createGain();
-        gain.gain.value = 0.12;
-
-        const intensityGain = this.ctx.createGain();
-        intensityGain.gain.value = this.intensity;
-        this.gains.melody = intensityGain;
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(intensityGain);
-        intensityGain.connect(this.musicBus);
-
-        osc.start(this.ctx.currentTime);
-        vibrato.start(this.ctx.currentTime);
-        this.nodes.push(osc, vibrato);
-
-        // Cycle notes slowly
-        this._melodyInterval = setInterval(() => {
-            if (!this.playing) {
-                clearInterval(this._melodyInterval);
-                return;
-            }
-            noteIdx = (noteIdx + 1) % notes.length;
-            const now = this.ctx.currentTime;
-            osc.frequency.linearRampToValueAtTime(notes[noteIdx], now + 0.3);
-        }, 2000);
-    }
-
-    // ---- Layer 3: Occasional metallic / industrial hits ----
-    _scheduleIndustrialHit() {
-        if (!this.playing) return;
-
-        // Random delay between 4-8 seconds
-        const delay = (4 + Math.random() * 4) * 1000;
-        this.hitTimer = setTimeout(() => {
-            if (!this.playing) return;
-            this._fireHit();
-            this._scheduleIndustrialHit();
-        }, delay);
-    }
-
-    _fireHit() {
-        if (!this.ctx || !this.playing) return;
-        const now = this.ctx.currentTime;
-
-        // Noise burst
-        const len = 0.15 + Math.random() * 0.15;
-        const sampleRate = this.ctx.sampleRate;
-        const bufSize = Math.floor(sampleRate * len);
-        const buf = this.ctx.createBuffer(1, bufSize, sampleRate);
-        const data = buf.getChannelData(0);
-        for (let i = 0; i < bufSize; i++) {
-            const t = i / bufSize;
-            const env = t < 0.02 ? t / 0.02 : Math.pow(1 - t, 3);
-            data[i] = (Math.random() * 2 - 1) * env;
-        }
-
-        const src = this.ctx.createBufferSource();
-        src.buffer = buf;
-
-        // Resonant bandpass gives metallic character
-        const bp = this.ctx.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.value = 800 + Math.random() * 2400;  // random timbre
-        bp.Q.value = 15 + Math.random() * 25;
-
-        const gain = this.ctx.createGain();
-        const vol = (0.10 + Math.random() * 0.12) * this.intensity;
-        gain.gain.setValueAtTime(vol, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + len);
-
-        src.connect(bp);
-        bp.connect(gain);
-        gain.connect(this.musicBus);
-        src.start(now);
-
-        // Clean up — don't accumulate in this.nodes since they auto-stop
-        src.onended = () => {
-            try { bp.disconnect(); gain.disconnect(); } catch (_) {}
-        };
-    }
-
-    // ---- Layer 4: High atmospheric shimmer ----
-    _startAtmosphericShimmer() {
-        const now = this.ctx.currentTime;
-
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = 3800;
-
-        // Slow detuned second oscillator for beating
-        const osc2 = this.ctx.createOscillator();
-        osc2.type = 'sine';
-        osc2.frequency.value = 3803;              // 3 Hz beating
-
-        // Tremolo LFO
-        const trem = this.ctx.createOscillator();
-        trem.type = 'sine';
-        trem.frequency.value = 0.4;
-
-        const tremGain = this.ctx.createGain();
-        tremGain.gain.value = 0.015;
-
-        const shimGain = this.ctx.createGain();
-        shimGain.gain.value = 0.015;              // very quiet
-
-        // Intensity multiplier
-        const intensityGain = this.ctx.createGain();
-        intensityGain.gain.value = 0.2 + this.intensity * 0.8;
-        this.gains.shimmer = intensityGain;
-
-        // Tremolo modulates shimmer volume
-        trem.connect(tremGain);
-        tremGain.connect(shimGain.gain);
-
-        osc.connect(shimGain);
-        osc2.connect(shimGain);
-        shimGain.connect(intensityGain);
-        intensityGain.connect(this.musicBus);
-
-        osc.start(now);
-        osc2.start(now);
-        trem.start(now);
-        this.nodes.push(osc, osc2, trem);
     }
 }
 
