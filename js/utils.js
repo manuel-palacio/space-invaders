@@ -312,13 +312,13 @@ class MusicManager {
 
         // Track playlist — shuffled each game
         this.tracks = [
-            'assets/TDTWWWA.mp3',
             'assets/collectormaster.mp3',
             'assets/discipline.mp3',
             'assets/end.mp3',
             'assets/capital.mp3',
             'assets/soldier.mp3',
-            'assets/destroyer.mp3'
+            'assets/destroyer.mp3',
+            'assets/deep.mp3'
         ];
         this.trackIndex = 0;
 
