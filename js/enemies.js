@@ -9,7 +9,7 @@ class Enemy {
         this.y = 0;
         this.vx = 0;
         this.vy = 0;
-        this.radius = 15;
+        this.radius = 15 * GAME_SCALE;
         this.hp = 1;
         this.maxHp = 1;
         this.active = false;
@@ -41,7 +41,7 @@ class Asteroid extends Enemy {
     constructor(canvasW, canvasH, sizeMultiplier = 1, spawnX, spawnY) {
         super();
         this.type = 'asteroid';
-        const baseRadius = Utils.random(12, 28) * sizeMultiplier;
+        const baseRadius = Utils.random(12, 28) * sizeMultiplier * GAME_SCALE;
         this.radius = baseRadius;
         this.sizeMultiplier = sizeMultiplier;
         this.hp = sizeMultiplier >= 1.4 ? 2 : 1; // big asteroids take 2 hits
@@ -197,7 +197,7 @@ class EnemyShip extends Enemy {
         this.assets = assets;
         this.type = 'ship';
         this.tier = tier; // 1 = small critter, 2 = large critter
-        this.radius = tier === 1 ? 16 : 24;
+        this.radius = (tier === 1 ? 16 : 24) * GAME_SCALE;
         this.hp = tier === 1 ? 2 : 3;
         this.maxHp = this.hp;
         this.points = tier === 1 ? 25 : 50;
@@ -361,7 +361,7 @@ class Drone extends Enemy {
     constructor(canvasW, canvasH, offsetY = 0) {
         super();
         this.type = 'drone';
-        this.radius = 8;
+        this.radius = 8 * GAME_SCALE;
         this.hp = 1;
         this.maxHp = 1;
         this.points = 15;
@@ -460,7 +460,7 @@ class Bomber extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'bomber';
-        this.radius = 22;
+        this.radius = 22 * GAME_SCALE;
         this.hp = 4;
         this.maxHp = 4;
         this.points = 60;
@@ -608,7 +608,7 @@ class SpaceMine extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'mine';
-        this.radius = 12;
+        this.radius = 12 * GAME_SCALE;
         this.hp = 1;
         this.maxHp = 1;
         this.points = 20;
@@ -732,7 +732,7 @@ class StealthFighter extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'stealth';
-        this.radius = 14;
+        this.radius = 14 * GAME_SCALE;
         this.hp = 2;
         this.maxHp = 2;
         this.points = 40;
@@ -884,7 +884,7 @@ class SpiderDrone extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'spider';
-        this.radius = 16;
+        this.radius = 16 * GAME_SCALE;
         this.hp = 3;
         this.maxHp = 3;
         this.points = 45;
@@ -1085,7 +1085,7 @@ class AlienGhost extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'ghost';
-        this.radius = 14;
+        this.radius = 14 * GAME_SCALE;
         this.hp = 2;
         this.maxHp = 2;
         this.points = 35;
@@ -1233,7 +1233,7 @@ class AlienDevil extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'devil';
-        this.radius = 18;
+        this.radius = 18 * GAME_SCALE;
         this.hp = 4;
         this.maxHp = 4;
         this.points = 55;
@@ -1429,7 +1429,7 @@ class Boss extends Enemy {
         super();
         this.type = 'boss';
         this.bossType = Utils.clamp(bossType, 0, 9);
-        this.radius = 30 + this.bossType * 2; // smaller early, bigger late
+        this.radius = (30 + this.bossType * 2) * GAME_SCALE;
 
         // HP scales gently: easy bosses (8-18), medium (24-36), hard (44-60)
         const hpTable = [8, 12, 16, 20, 24, 30, 38, 46, 54, 64];

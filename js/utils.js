@@ -2,6 +2,12 @@
 // utils.js — Utility functions, audio manager, screen shake
 // ============================================================
 
+// Global scale factor — 1.0 at 1920px width, scales down on smaller screens
+let GAME_SCALE = 1.0;
+function updateGameScale(canvasWidth) {
+    GAME_SCALE = Math.max(0.5, Math.min(1.0, canvasWidth / 1200));
+}
+
 const Utils = {
     random(min, max) {
         return Math.random() * (max - min) + min;

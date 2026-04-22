@@ -8,9 +8,9 @@ class Player {
         this.assets = assets || {};
         this.x = 80;
         this.y = canvas.height / 2;
-        this.width = 40;
-        this.height = 30;
-        this.radius = 18;       // collision radius
+        this.width = 40 * GAME_SCALE;
+        this.height = 30 * GAME_SCALE;
+        this.radius = 18 * GAME_SCALE;
         this.speed = 420;
         this.vx = 0;
         this.vy = 0;
@@ -303,11 +303,9 @@ class Player {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
-        // Wrap right/top/bottom edges, block left edge
-        if (this.x > this.canvas.width + this.width / 2) this.x = -this.width / 2;
-        this.x = Math.max(this.x, this.width / 2); // can't go off left
-        if (this.y > this.canvas.height + this.height / 2) this.y = -this.height / 2;
-        if (this.y < -this.height / 2) this.y = this.canvas.height + this.height / 2;
+        // Clamp to screen
+        this.x = Utils.clamp(this.x, this.width / 2, this.canvas.width - this.width / 2);
+        this.y = Utils.clamp(this.y, this.height / 2, this.canvas.height - this.height / 2);
 
         // Shoot cooldown
         if (this.shootCooldown > 0) this.shootCooldown -= dt;

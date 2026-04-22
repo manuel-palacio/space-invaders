@@ -30,7 +30,7 @@ class Projectile {
         this.active = true;
         this.isEnemy = isEnemy;
         this.damage = damage;
-        this.radius = isEnemy ? 3 : 4;
+        this.radius = (isEnemy ? 3 : 4) * GAME_SCALE;
     }
 
     update(dt, canvasW, canvasH) {

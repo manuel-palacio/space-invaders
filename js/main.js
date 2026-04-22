@@ -40,6 +40,7 @@
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        updateGameScale(canvas.width);
         if (game) game.resize(canvas.width, canvas.height);
     }
     resize();
