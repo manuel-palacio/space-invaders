@@ -290,8 +290,11 @@ class Player {
             this.alive = false;
             return true; // dead
         }
+        // Rage mode — brief invincibility + death ray on respawn
         this.invincible = true;
-        this.invincibleTimer = this.invincibleDuration;
+        this.invincibleTimer = 3.0;
+        this.deathRay = true;
+        this.deathRayTimer = 3.0;
         return false;
     }
 
