@@ -378,15 +378,16 @@ class MusicManager {
 
         // Track playlist — shuffled each game
         this.tracks = [
-            'assets/collectormaster.mp3',
+            'assets/the-collector.mp3',
             'assets/discipline.mp3',
-            'assets/end.mp3',
-            'assets/capital.mp3',
-            'assets/soldier.mp3',
-            'assets/destroyer.mp3',
+            'assets/beginning-of-the-end.mp3',
+            'assets/capital-g.mp3',
+            'assets/the-good-soldier.mp3',
+            'assets/great-destroyer.mp3',
             'assets/deep.mp3',
-            'assets/pretty.mp3',
-            'assets/entity.mp3'
+            'assets/not-so-pretty-now.mp3',
+            'assets/non-entity.mp3',
+            'assets/the-day-the-world-went-away.mp3'
         ];
         this.trackIndex = 0;
 
@@ -416,6 +417,7 @@ class MusicManager {
             next = Math.floor(Math.random() * this.tracks.length);
         } while (next === this.trackIndex && this.tracks.length > 1);
         this.trackIndex = next;
+        this.currentTrackName = this.tracks[next].replace('assets/', '').replace('.mp3', '');
         this.audio.src = this.tracks[next];
         this.audio.play().catch(() => {});
     }

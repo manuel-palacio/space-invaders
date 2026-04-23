@@ -9,45 +9,108 @@ const STATE = {
     GAME_OVER: 'GAME_OVER'
 };
 
-const NIN_QUOTES = [
-    // Head Like a Hole
-    'HEAD LIKE A HOLE, BLACK AS YOUR SOUL',
-    'BOW DOWN BEFORE THE ONE YOU SERVE',
-    'YOU\'RE GOING TO GET WHAT YOU DESERVE',
-    'GOD MONEY, I\'LL DO ANYTHING FOR YOU',
-    'NO YOU CAN\'T TAKE IT, NO YOU CAN\'T TAKE THAT AWAY FROM ME',
-    // Starfuckers Inc.
-    'NOW I BELONG, I\'M ONE OF THE CHOSEN ONES',
-    'MY MORAL STANDING IS LYING DOWN',
-    'AND WHEN I SUCK YOU UP, NOT A DROP WILL GO TO WASTE.',
-    'DOESN\'T IT MAKE YOU FEEL BETTER?',
-    'ALL OUR PAIN, HOW DID WE EVER GET BY WITHOUT YOU?',
-    // The Big Come Down
-    'THERE IS NO PLACE I CAN GO, THERE IS NO PLACE I CAN HIDE',
-    'THE BIG COME DOWN, ISN\'T THAT WHAT YOU WANTED?',
-    'EVERYTHING IS FALLING APART',
-    // Please
-    'DON\'T YOU TELL ME HOW I FEEL',
-    'YOU DON\'T KNOW JUST HOW FAR THAT I WOULD GO',
-    'PLEASE',
-    // The Collector
-    'I AM THE COLLECTOR',
-    'TRY FITTING IT ALL INSIDE',
-    // Every Day Is Exactly The Same
-    'I BELIEVE I CAN SEE THE FUTURE, CAUSE I REPEAT THE SAME ROUTINE',
-    'EVERY DAY IS EXACTLY THE SAME',
-    'I CAN FEEL THEIR EYES ARE WATCHING',
-    'I THINK I USED TO HAVE A PURPOSE, THEN AGAIN THAT MIGHT HAVE BEEN A DREAM',
-    'IS THERE SOMETHING I HAVE MISSED?',
-    // Hurt
-    'I HURT MYSELF TODAY, TO SEE IF I STILL FEEL',
-    'WHAT HAVE I BECOME, MY SWEETEST FRIEND',
-    'EVERYONE I KNOW GOES AWAY IN THE END',
-    'I WILL LET YOU DOWN, I WILL MAKE YOU HURT',
-    'YOU COULD HAVE IT ALL, MY EMPIRE OF DIRT',
-    'THE NEEDLE TEARS A HOLE, THE OLD FAMILIAR STING',
-    'I WEAR THIS CROWN OF THORNS UPON MY LIAR\'S CHAIR',
-];
+// Lyrics keyed by track filename — quotes match the currently playing song
+const SONG_LYRICS = {
+    'the-collector': [
+        'I AM THE COLLECTOR',
+        'I PICK THE BEST ONES OUT',
+        'TRY FITTING IT ALL INSIDE',
+        'I HOLD THE KEY TO EVERYTHING',
+        'REACHING IN AND OUT OF MY MIND',
+        'THE THINGS THAT I HAVE SEEN',
+        'HOW COULD IT COME TO THIS',
+    ],
+    'discipline': [
+        'I DO WHAT I HAVE TO DO',
+        'HELP ME TEAR DOWN MY REASON',
+        'IT\'S THIS THING INSIDE OF ME',
+        'KEEP ON PUSHING THE BOUNDARIES',
+        'I NEED YOUR DISCIPLINE',
+        'AM I GETTING THROUGH TO YOU',
+        'NOTHING SEEMS TO SATISFY',
+    ],
+    'beginning-of-the-end': [
+        'JUST WHEN I THINK I\'M ALRIGHT',
+        'THE BEGINNING OF THE END',
+        'NOW I KNOW WHAT IT FEELS LIKE',
+        'I AM THE ONE THAT SAVES YOU',
+        'EVERYTHING IS BREAKING DOWN',
+        'ALL THAT WE WERE IS GONE NOW',
+        'WHAT AM I SUPPOSED TO DO',
+    ],
+    'capital-g': [
+        'I PUSHED A BUTTON AND ELECTED HIM TO OFFICE',
+        'DON\'T TRY TO TELL ME THAT SOME POWER CAN CORRUPT A PERSON',
+        'I USED MY MONEY AND BOUGHT MY WAY IN',
+        'CAPITAL G',
+        'THE HEADLINES READ THESE ARE THE WORST OF TIMES',
+        'WE SHOULD HAVE LISTENED BUT JUST FOLLOWED',
+        'TRIED TO TELL YOU BUT OH NO YOU KNOW BEST',
+    ],
+    'the-good-soldier': [
+        'STANDING IN THE LINE OF FIRE',
+        'THE GOOD SOLDIER',
+        'I WILL DO WHAT I AM TOLD',
+        'AND ALL ALONG I HELD MY TONGUE',
+        'THE BLOOD OF EVERY MAN IS ON MY HANDS',
+        'COUNTING ON THE NEXT SURPRISE',
+        'ALL LINED UP AND READY TO GO',
+    ],
+    'great-destroyer': [
+        'STAND BACK AND LET ME TAKE CONTROL',
+        'I AM THE GREAT DESTROYER',
+        'I AM THE END OF ALL HOPES AND DREAMS',
+        'PUT YOUR FAITH IN ME',
+        'EVERYTHING YOU KNOW WILL BE UNDONE',
+        'THE BULLET AND THE PROMISE',
+        'PRAY TO YOUR GOD, IT WON\'T SAVE YOU NOW',
+    ],
+    'deep': [
+        'I FEEL YOU IN ME',
+        'DOWN IN IT',
+        'NOTHING CAN STOP ME NOW',
+        'TAKE MY HAND WE\'RE GOING SOMEWHERE',
+        'YOU LET ME DESECRATE YOU',
+        'YOU LET ME VIOLATE YOU',
+        'THERE IS NO TURNING BACK NOW',
+    ],
+    'not-so-pretty-now': [
+        'NOT SO PRETTY NOW',
+        'WHAT HAVE THEY DONE TO YOU',
+        'EVERYTHING IS NOT OKAY',
+        'ALL YOUR PERFECT LITTLE LIES',
+        'LOOK AT WHAT YOU\'VE BECOME',
+        'TAKE A GOOD LOOK AT YOURSELF',
+        'THE MASK IS FINALLY OFF',
+    ],
+    'non-entity': [
+        'I AM NOTHING',
+        'NON-ENTITY',
+        'FADE INTO NOTHINGNESS',
+        'I FEEL MYSELF SLIPPING AWAY',
+        'THERE IS NO MEANING LEFT',
+        'EVERYTHING DISSOLVES',
+        'I NEVER EXISTED AT ALL',
+    ],
+    'the-day-the-world-went-away': [
+        'THE DAY THE WORLD WENT AWAY',
+        'I\'D LISTEN TO THE WORDS HE\'D SAY',
+        'HE TRIED TO TELL ME WHAT WAS RIGHT',
+        'NOTHING CAN STOP ME NOW',
+        'I DON\'T CARE ANYMORE',
+        'NA NA NA NA NA, NOTHING CAN STOP ME NOW',
+        'THE WORLD WENT AWAY',
+    ],
+    'me-im-not': [
+        'IF IT BRINGS ME TO MY KNEES',
+        'IT\'S A BAD RELIGION',
+        'NOTHING QUITE WHAT IT SEEMS',
+        'ME, I\'M NOT',
+        'EVERYTHING IS ON THE TABLE',
+        'I DON\'T KNOW WHO I AM ANYMORE',
+        'ALL THAT I WAS IS GONE',
+    ],
+};
 
 class Game {
     constructor(canvas, ctx, assets) {
@@ -60,7 +123,7 @@ class Game {
         this.music = null; // created on first play
 
         // Menu music — plays on title/game-over screens
-        this.menuMusic = new Audio('assets/not.mp3');
+        this.menuMusic = new Audio('assets/me-im-not.mp3');
         this.menuMusic.loop = true;
         this.menuMusic.volume = 0.4;
         this.menuMusicStarted = false;
@@ -476,15 +539,25 @@ class Game {
     }
 
     showRandomQuote() {
-        if (this.usedQuotes.length >= NIN_QUOTES.length) {
+        // Get lyrics for the currently playing song
+        const trackName = this.music && this.music.currentTrackName;
+        const lyrics = (trackName && SONG_LYRICS[trackName]) || Object.values(SONG_LYRICS)[0];
+
+        if (this.usedQuotes.length >= lyrics.length) {
             this.usedQuotes = [];
         }
-        const available = NIN_QUOTES.filter((_, i) => !this.usedQuotes.includes(i));
-        const idx = NIN_QUOTES.indexOf(available[Utils.randomInt(0, available.length - 1)]);
+        const available = lyrics.filter((_, i) => !this.usedQuotes.includes(i));
+        const idx = lyrics.indexOf(available[Utils.randomInt(0, available.length - 1)]);
         this.usedQuotes.push(idx);
-        this.quoteText = NIN_QUOTES[idx];
+        this.quoteText = lyrics[idx];
         this.quoteTimer = this.quoteDuration;
-        this._quoteWordPositions = null; // regenerate positions
+        this._quoteWordPositions = null;
+
+        // Reset used quotes when song changes
+        if (this._lastTrackName !== trackName) {
+            this._lastTrackName = trackName;
+            this.usedQuotes = [];
+        }
     }
 
     spawnPowerUp() {
