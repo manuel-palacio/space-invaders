@@ -1529,6 +1529,10 @@ class Boss extends Enemy {
                         this.fireSpiral(projectilePool, audio);
                         break;
                 }
+                // Late bosses: fire a bonus wall pattern
+                if (this.bossType >= 7) {
+                    this.fireWall(projectilePool, audio);
+                }
             }
         }
 
@@ -1584,6 +1588,24 @@ class Boss extends Enemy {
                 p.init(this.x - this.radius, this.y,
                     Math.cos(angle) * speed, Math.sin(angle) * speed,
                     this.color, '#ff6666', true);
+            }
+        }
+        if (audio) audio.playEnemyLaser();
+    }
+
+    fireWall(projectilePool, audio) {
+        // Wall of bullets with a gap for the player to dodge through
+        const speed = 200 * this.bulletSpeedMul;
+        const gap = Utils.random(0.2, 0.8);
+        const rows = 12;
+        for (let i = 0; i < rows; i++) {
+            const frac = i / (rows - 1);
+            if (Math.abs(frac - gap) < 0.15) continue;
+            const p = projectilePool.get();
+            if (p) {
+                const yPos = this.canvasH * frac;
+                p.init(this.x - this.radius, yPos,
+                    -speed, 0, this.color, '#ff4444', true);
             }
         }
         if (audio) audio.playEnemyLaser();
@@ -1842,8 +1864,16 @@ class EnemySpawner {
             if (featured !== 'all' && roll < 0.50) {
                 this.spawnByType(featured, canvasW, canvasH, largeTier);
             } else {
-                // Mixed spawns — weighted by what's unlocked
                 this.spawnMixed(score, canvasW, canvasH, largeTier);
+            }
+
+            // Phase 7+: 20% chance to also spawn an enemy from behind (left side)
+            if (phase >= 6 && Math.random() < 0.2) {
+                const behindPool = ['drone', 'asteroid'];
+                if (phase >= 7) behindPool.push('ship');
+                const pick = behindPool[Utils.randomInt(0, behindPool.length - 1)];
+                const e = this._spawnFromBehind(pick, canvasW, canvasH);
+                if (e) this.enemies.push(e);
             }
         }
 
@@ -1934,6 +1964,34 @@ class EnemySpawner {
 
         const pick = pool[Utils.randomInt(0, pool.length - 1)];
         this.spawnByType(pick, canvasW, canvasH, largeTier);
+    }
+
+    _spawnFromBehind(type, canvasW, canvasH) {
+        const y = Utils.random(30, canvasH - 30);
+        switch (type) {
+            case 'asteroid': {
+                const a = new Asteroid(canvasW, canvasH, 1, -30, y);
+                a.vx = Utils.random(80, 160); // flies rightward
+                return a;
+            }
+            case 'drone': {
+                const d = new Drone(canvasW, canvasH, 0);
+                d.x = -20;
+                d.y = y;
+                d.vx = Utils.random(180, 260); // fast rightward
+                d.baseY = y;
+                return d;
+            }
+            case 'ship': {
+                const s = new EnemyShip(canvasW, canvasH, 1, this.assets);
+                s.x = -20;
+                s.y = y;
+                s.vx = Utils.random(60, 120);
+                s.canvas_w = canvasW;
+                return s;
+            }
+        }
+        return null;
     }
 
     draw(ctx) {

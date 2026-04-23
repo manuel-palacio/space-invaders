@@ -99,6 +99,7 @@ class Game {
         this.lastPhase = -1;
         this.phaseAnnounceTimer = 0;
         this.phaseAnnounceName = '';
+        this.phaseStartTime = 0; // for speed run timer
         this.phaseAnnounceColor = '#ffffff';
 
         // NIN quotes
@@ -112,6 +113,10 @@ class Game {
         this.keys = {};
         this.joystick = { active: false, dx: 0, dy: 0 };
         this.touchFiring = false;
+
+        // Easter egg code buffer
+        this._codeBuffer = '';
+        this._codeTimer = 0;
 
         // Menu animation
         this.menuTime = 0;
@@ -200,6 +205,7 @@ class Game {
     // ----- Input handlers -----
     onKeyDown(code) {
         this.keys[code] = true;
+        this._checkEasterEgg(code);
 
         if (code === 'KeyP' || code === 'Escape') {
             if (this.state === STATE.PLAYING || this.state === STATE.PAUSED) {
@@ -227,6 +233,42 @@ class Game {
 
     onKeyUp(code) {
         this.keys[code] = false;
+    }
+
+    _checkEasterEgg(code) {
+        if (this.state !== STATE.PLAYING) return;
+        // Extract letter from key code (e.g., 'KeyH' → 'H')
+        if (code.startsWith('Key')) {
+            this._codeBuffer += code.charAt(3);
+            this._codeTimer = 2.0; // reset timeout
+
+            // Check for codes
+            if (this._codeBuffer.endsWith('HURT')) {
+                // God mode — max lives, invincible
+                this.player.lives = this.player.maxLives;
+                this.player.invincible = true;
+                this.player.invincibleTimer = 30;
+                this.phaseAnnounceName = 'GOD MODE';
+                this.phaseAnnounceColor = '#cc0000';
+                this.phaseAnnounceTimer = 2.0;
+                this._codeBuffer = '';
+            } else if (this._codeBuffer.endsWith('CLOSER')) {
+                // Spawn a max-level boss
+                const boss = new Boss(this.canvas.width, this.canvas.height, 9);
+                boss.canvas_w = this.canvas.width;
+                this.spawner.enemies.push(boss);
+                this.bossActive = true;
+                this.phaseAnnounceName = 'CLOSER';
+                this.phaseAnnounceColor = '#ff2200';
+                this.phaseAnnounceTimer = 2.0;
+                this._codeBuffer = '';
+            }
+
+            // Trim buffer
+            if (this._codeBuffer.length > 10) {
+                this._codeBuffer = this._codeBuffer.slice(-10);
+            }
+        }
     }
 
     // ----- Main update -----
@@ -258,6 +300,17 @@ class Game {
         // Auto-fire if key held or touch
         if ((this.keys['Space'] || this.touchFiring) && this.state === STATE.PLAYING) {
             this.player.shoot(this.projectiles, this.particles, this.audio);
+        }
+
+        // Wingman auto-fire
+        if (this.player.wingman && this.player.wingmanShootTimer <= 0) {
+            this.player.wingmanShootTimer = 0.3;
+            const p = this.projectiles.get();
+            if (p) {
+                p.init(this.player.wingmanX + 15, this.player.wingmanY,
+                    600, Utils.random(-30, 30), '#4488ff', '#4488ff', false,
+                    this.player.baseDamage || 1);
+            }
         }
 
         // Activate shield on E key (consume the keypress)
@@ -296,6 +349,7 @@ class Game {
             this.phaseAnnounceName = phaseInfo.name;
             this.phaseAnnounceColor = phaseInfo.color;
             this.phaseAnnounceTimer = 4.0;
+            this.phaseStartTime = this.time;
 
             // Clear all non-boss enemies for a clean phase transition
             if (currentPhase > 0) {
@@ -357,6 +411,21 @@ class Game {
             const pull = this.blackHole.getPullForce(this.player.x, this.player.y);
             this.player.vx += pull.fx * dt * 200;
             this.player.vy += pull.fy * dt * 200;
+
+            // Bend all bullets and enemies toward the black hole
+            const allBullets = [...this.projectiles.getPlayerBullets(), ...this.projectiles.getEnemyBullets()];
+            for (const b of allBullets) {
+                if (!b.active) continue;
+                const bp = this.blackHole.getPullForce(b.x, b.y);
+                b.vx += bp.fx * dt * 400;
+                b.vy += bp.fy * dt * 400;
+            }
+            for (const e of this.spawner.enemies) {
+                if (!e.active || e.type === 'boss') continue;
+                const ep = this.blackHole.getPullForce(e.x, e.y);
+                e.x += ep.fx * dt * 100;
+                e.y += ep.fy * dt * 100;
+            }
         }
 
         // Solar flare collision with player
@@ -367,9 +436,10 @@ class Game {
             }
         }
 
-        // Stop death ray sound when it expires
-        if (!this.player.deathRay && this.audio._deathRayNodes) {
-            this.audio.stopDeathRay();
+        // Easter egg code buffer timeout
+        if (this._codeTimer > 0) {
+            this._codeTimer -= dt;
+            if (this._codeTimer <= 0) this._codeBuffer = '';
         }
 
         // Music intensity scales with phase (10 phases)
@@ -533,43 +603,33 @@ class Game {
                             fx.count, 300, 0.8, 5);
                         this.shake.shake(fx.shake, 0.15);
                         this.audio.playExplosion();
+
+                        // Chain explosion — damage nearby enemies
+                        const chainRadius = 60 * GAME_SCALE;
+                        for (let j = enemies.length - 1; j >= 0; j--) {
+                            const other = enemies[j];
+                            if (!other.active || other === e) continue;
+                            const dist = Utils.distance(e.x, e.y, other.x, other.y);
+                            if (dist < chainRadius + other.radius) {
+                                const chainKill = other.takeDamage(1);
+                                if (chainKill) {
+                                    other.active = false;
+                                    this.player.registerKill();
+                                    this.score += Math.floor(other.points * this.player.getComboMultiplier());
+                                    this.particles.createColorExplosion(other.x, other.y,
+                                        ['#ff6600', '#ffaa00', '#ffffff'], 20, 250, 0.6, 4);
+                                    this.audio.playSmallExplosion();
+                                } else {
+                                    this.particles.createExplosion(other.x, other.y, '#ffaa00', 8, 100, 0.3, 2);
+                                }
+                            }
+                        }
                     } else {
                         // Hit flash
                         this.particles.createExplosion(e.x, e.y, '#ffffff', 6, 120, 0.2, 2);
                         this.audio.playSmallExplosion();
                     }
                     break;
-                }
-            }
-        }
-
-        // Death Ray → enemies (beam kills everything in its path)
-        if (this.player.deathRay && this.player.alive) {
-            const beamX = this.player.x + this.player.width / 2;
-            const beamY = this.player.y;
-            const halfH = this.player.deathRayWidth / 2;
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const e = enemies[i];
-                if (!e.active) continue;
-                // Enemy is in the beam if it's to the right of the ship and within beam height
-                if (e.x > beamX - e.radius && Math.abs(e.y - beamY) < halfH + e.radius) {
-                    e.active = false;
-                    this.player.registerKill();
-                    const multiplier = this.player.getComboMultiplier() * this.player.getPowerComboMultiplier();
-                    this.score += Math.floor(e.points * multiplier);
-                    this.player.addScrap(Utils.randomInt(1, e.type === 'boss' ? 30 : 3));
-                    // Big explosion for every kill
-                    this.particles.createColorExplosion(e.x, e.y,
-                        ['#ff2200', '#ff6600', '#ffaa00', '#ffffff', '#cc0000'],
-                        40, 350, 1.0, 6);
-                    this.shake.shake(4, 0.1);
-                    this.audio.playExplosion();
-                }
-            }
-            // Beam also destroys enemy bullets
-            for (const bullet of enemyBullets) {
-                if (bullet.x > beamX && Math.abs(bullet.y - beamY) < halfH + 5) {
-                    bullet.active = false;
                 }
             }
         }
@@ -604,7 +664,6 @@ class Game {
                     const info = POWERUP_TYPES[pu.type];
                     this.particles.createExplosion(pu.x, pu.y, info.color, 15, 150, 0.4, 3);
                     this.audio.playPowerUp();
-                    if (pu.type === 'DEATH_RAY') this.audio.startDeathRay();
                     pu.active = false;
                     this.powerups.splice(i, 1);
                 }
@@ -761,6 +820,11 @@ class Game {
             ctx.fillText(`RICOCHET ${Math.ceil(this.player.ricochetTimer)}s`, 16, puY);
             puY += 18;
         }
+        if (this.player.wingman) {
+            ctx.fillStyle = '#4488ff';
+            ctx.fillText(`WINGMAN ${Math.ceil(this.player.wingmanTimer)}s`, 16, puY);
+            puY += 18;
+        }
         // Power combo indicator
         const puCount = this.player.getActivePowerUpCount();
         if (puCount >= 2) {
@@ -771,14 +835,6 @@ class Game {
             ctx.shadowColor = ctx.fillStyle;
             ctx.shadowBlur = 10 * comboPulse;
             ctx.fillText(`POWER COMBO x${comboMul}`, 16, puY);
-            ctx.shadowBlur = 0;
-            puY += 18;
-        }
-        if (this.player.deathRay) {
-            ctx.fillStyle = '#cc0000';
-            ctx.shadowColor = '#cc0000';
-            ctx.shadowBlur = 6;
-            ctx.fillText(`DEATH RAY ${Math.ceil(this.player.deathRayTimer)}s`, 16, puY);
             ctx.shadowBlur = 0;
             puY += 18;
         }
@@ -801,14 +857,18 @@ class Game {
             ctx.restore();
         }
 
-        // Current phase indicator — top center
+        // Current phase indicator + speed run timer — top center
         if (this.lastPhase >= 0 && this.phaseAnnounceTimer <= 0) {
             ctx.font = 'bold 13px Courier New';
             ctx.textAlign = 'center';
             ctx.fillStyle = '#888';
             ctx.shadowColor = '#cc0000';
             ctx.shadowBlur = 3;
-            ctx.fillText(`PHASE ${this.lastPhase + 1}: ${PHASES[this.lastPhase].name}`, w / 2, 20);
+            const phaseTime = Math.floor(this.time - this.phaseStartTime);
+            const mins = Math.floor(phaseTime / 60);
+            const secs = phaseTime % 60;
+            const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+            ctx.fillText(`PHASE ${this.lastPhase + 1}: ${PHASES[this.lastPhase].name}  [${timeStr}]`, w / 2, 20);
             ctx.shadowBlur = 0;
         }
 

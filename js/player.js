@@ -45,6 +45,13 @@ class Player {
         this.ricochet = false;
         this.ricochetTimer = 0;
 
+        // Wingman drone (companion ship)
+        this.wingman = false;
+        this.wingmanTimer = 0;
+        this.wingmanX = 0;
+        this.wingmanY = 0;
+        this.wingmanShootTimer = 0;
+
         // Death Ray (laser beam power-up)
         this.deathRay = false;
         this.deathRayTimer = 0;
@@ -112,6 +119,8 @@ class Player {
         this.shieldTimer = 0;
         this.ricochet = false;
         this.ricochetTimer = 0;
+        this.wingman = false;
+        this.wingmanTimer = 0;
         this.deathRay = false;
         this.deathRayTimer = 0;
         this.fireRate = this.baseFireRate;
@@ -133,8 +142,8 @@ class Player {
         if (this.rapidFire) count++;
         if (this.tripleShot) count++;
         if (this.shield) count++;
-        if (this.deathRay) count++;
         if (this.ricochet) count++;
+        if (this.wingman) count++;
         return count;
     }
 
@@ -163,13 +172,15 @@ class Player {
             case 'EXTRA_LIFE':
                 if (this.lives < this.maxLives) this.lives++;
                 break;
-            case 'DEATH_RAY':
-                this.deathRay = true;
-                this.deathRayTimer = POWERUP_TYPES.DEATH_RAY.duration;
-                break;
             case 'RICOCHET':
                 this.ricochet = true;
                 this.ricochetTimer = POWERUP_TYPES.RICOCHET.duration;
+                break;
+            case 'WINGMAN':
+                this.wingman = true;
+                this.wingmanTimer = POWERUP_TYPES.WINGMAN.duration;
+                this.wingmanX = this.x - 30;
+                this.wingmanY = this.y + 40;
                 break;
         }
     }
@@ -290,11 +301,9 @@ class Player {
             this.alive = false;
             return true; // dead
         }
-        // Rage mode — brief invincibility + death ray on respawn
+        // Rage mode — brief invincibility on respawn
         this.invincible = true;
         this.invincibleTimer = 3.0;
-        this.deathRay = true;
-        this.deathRayTimer = 3.0;
         return false;
     }
 
@@ -366,6 +375,19 @@ class Player {
             this.ricochetTimer -= dt;
             if (this.ricochetTimer <= 0) {
                 this.ricochet = false;
+            }
+        }
+
+        // Wingman timer + follow
+        if (this.wingman) {
+            this.wingmanTimer -= dt;
+            if (this.wingmanTimer <= 0) {
+                this.wingman = false;
+            } else {
+                // Follow player with lag
+                this.wingmanX += (this.x - 35 - this.wingmanX) * 4 * dt;
+                this.wingmanY += (this.y + 40 - this.wingmanY) * 4 * dt;
+                this.wingmanShootTimer -= dt;
             }
         }
 
@@ -546,6 +568,39 @@ class Player {
                 ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
                 ctx.stroke();
             }
+        }
+
+        // Wingman drone
+        if (this.wingman) {
+            ctx.save();
+            ctx.translate(this.wingmanX - this.x, this.wingmanY - this.y);
+            const wScale = 0.5;
+            ctx.scale(wScale, wScale);
+            // Small ship shape
+            ctx.fillStyle = '#2255aa';
+            ctx.strokeStyle = '#4488ff';
+            ctx.shadowColor = '#4488ff';
+            ctx.shadowBlur = 6;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(20, 0);
+            ctx.lineTo(-12, -10);
+            ctx.lineTo(-8, 0);
+            ctx.lineTo(-12, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // Engine glow
+            const wFlicker = 0.6 + 0.4 * Math.sin(this.engineTime * 20);
+            ctx.fillStyle = `rgba(68, 136, 255, ${0.5 * wFlicker})`;
+            ctx.shadowBlur = 8 * wFlicker;
+            ctx.beginPath();
+            ctx.moveTo(-8, -3);
+            ctx.lineTo(-14 - 5 * wFlicker, 0);
+            ctx.lineTo(-8, 3);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
         }
 
         // Death Ray beam
