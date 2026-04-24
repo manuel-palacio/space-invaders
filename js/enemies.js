@@ -1506,22 +1506,37 @@ class Boss extends Enemy {
                 this.arrived = true;
             }
         } else {
-            // Evasive movement — dodge away from player's Y position
-            const diff = playerY - this.y;
-            const evadeDir = diff > 0 ? -1 : 1; // move opposite to player
-
-            // Base drift + evasion
+            const margin = this.radius + 30;
+            const topEdge = margin;
+            const botEdge = this.canvasH - margin;
+            const centerY = this.canvasH / 2;
             const driftSpeed = 60 + this.bossType * 8;
-            const drift = Math.sin(this.time * 0.8) * 30;
-            const evade = evadeDir * driftSpeed * 0.6;
-            this.y += (drift + evade) * dt;
 
-            // Strafe periodically to avoid sustained fire
-            if (Math.sin(this.time * 1.5) > 0.7) {
-                this.y += evadeDir * driftSpeed * dt;
+            // Near edge? Push back toward center instead of evading further
+            const nearTop = this.y < topEdge + 40;
+            const nearBot = this.y > botEdge - 40;
+
+            if (nearTop || nearBot) {
+                // Escape corner — move toward center
+                const toCenter = centerY - this.y;
+                this.y += Math.sign(toCenter) * driftSpeed * 1.2 * dt;
+            } else {
+                // Normal evasion — dodge away from player Y
+                const diff = playerY - this.y;
+                const evadeDir = diff > 0 ? -1 : 1;
+
+                // Sinusoidal drift + evasion
+                const drift = Math.sin(this.time * 1.2) * 40;
+                const evade = evadeDir * driftSpeed * 0.5;
+                this.y += (drift + evade) * dt;
+
+                // Periodic direction change to stay unpredictable
+                if (Math.sin(this.time * 2.0 + this.bossType) > 0.8) {
+                    this.y -= evadeDir * driftSpeed * 0.8 * dt;
+                }
             }
 
-            this.y = Utils.clamp(this.y, this.radius + 20, this.canvasH - this.radius - 20);
+            this.y = Utils.clamp(this.y, topEdge, botEdge);
         }
 
         // Cycle attack patterns once arrived
