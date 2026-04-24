@@ -158,7 +158,13 @@ class Game {
     }
 
     addToLeaderboard(score) {
-        this.leaderboard.push({ score, date: new Date().toLocaleDateString() });
+        this.leaderboard.push({
+            score,
+            phase: this.lastPhase + 1,
+            time: Math.floor(this.time),
+            maxCombo: this.player.maxCombo,
+            date: new Date().toLocaleDateString()
+        });
         this.leaderboard.sort((a, b) => b.score - a.score);
         this.leaderboard = this.leaderboard.slice(0, 10);
         localStorage.setItem('ninDefenderLeaderboard', JSON.stringify(this.leaderboard));
@@ -1177,7 +1183,10 @@ class Game {
             for (let i = 0; i < maxShow; i++) {
                 const entry = this.leaderboard[i];
                 ctx.fillStyle = i === 0 ? '#cc0000' : '#444';
-                ctx.fillText(`${i + 1}. ${entry.score}`, w / 2, h * 0.73 + 16 + i * 14);
+                const phase = entry.phase ? `P${entry.phase}` : '';
+                const combo = entry.maxCombo ? `x${entry.maxCombo}` : '';
+                const time = entry.time ? `${Math.floor(entry.time / 60)}:${(entry.time % 60).toString().padStart(2, '0')}` : '';
+                ctx.fillText(`${i + 1}. ${entry.score}  ${phase}  ${time}  ${combo}`, w / 2, h * 0.73 + 16 + i * 14);
             }
         }
 
