@@ -1506,8 +1506,21 @@ class Boss extends Enemy {
                 this.arrived = true;
             }
         } else {
-            // Gentle vertical drift while fighting
-            this.y += Math.sin(this.time * 0.8) * 40 * dt;
+            // Evasive movement — dodge away from player's Y position
+            const diff = playerY - this.y;
+            const evadeDir = diff > 0 ? -1 : 1; // move opposite to player
+
+            // Base drift + evasion
+            const driftSpeed = 60 + this.bossType * 8;
+            const drift = Math.sin(this.time * 0.8) * 30;
+            const evade = evadeDir * driftSpeed * 0.6;
+            this.y += (drift + evade) * dt;
+
+            // Strafe periodically to avoid sustained fire
+            if (Math.sin(this.time * 1.5) > 0.7) {
+                this.y += evadeDir * driftSpeed * dt;
+            }
+
             this.y = Utils.clamp(this.y, this.radius + 20, this.canvasH - this.radius - 20);
         }
 
