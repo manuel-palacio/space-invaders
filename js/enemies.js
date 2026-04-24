@@ -1433,8 +1433,10 @@ class Boss extends Enemy {
         this.radius = (30 + this.bossType * 2) * GAME_SCALE;
 
         // HP scales gently: easy bosses (8-18), medium (24-36), hard (44-60)
-        const hpTable = [8, 12, 16, 20, 24, 30, 38, 46, 54, 64];
-        this.hp = hpTable[this.bossType] || 8;
+        // Base HP scales with boss type; effective HP stays reasonable
+        // because it's measured in "seconds to kill" not raw HP
+        const hpTable = [10, 14, 18, 22, 28, 34, 40, 48, 56, 65];
+        this.hp = hpTable[this.bossType] || 10;
         this.maxHp = this.hp;
         this.points = 200 + this.bossType * 150;
 
@@ -2377,16 +2379,8 @@ class EnemySpawner {
         }
 
         const phaseInfo = PHASES[this.currentPhase];
-        // Gentler difficulty curve: slow ramp in early phases, steeper after phase 5
-        let interval;
-        if (phase <= 4) {
-            // Easy phases: 2.2s down to ~1.5s (very gentle)
-            interval = Math.max(1.5, this.baseInterval - phase * 0.1);
-        } else {
-            // Hard phases: accelerate from 1.3s down to 0.5s
-            const hardPhase = phase - 5;
-            interval = Math.max(0.5, 1.3 - hardPhase * 0.16);
-        }
+        // Smooth exponential spawn interval — no cliff between phases
+        const interval = Math.max(0.45, 2.2 * Math.pow(0.82, phase));
         const largeTier = phase >= 5 ? 0.2 : 0;
 
         if (this.timer <= 0) {
@@ -2395,15 +2389,20 @@ class EnemySpawner {
             const roll = Math.random();
             const featured = phaseInfo.featured;
 
-            // 50% chance to spawn the featured enemy, rest is mixed
-            if (featured !== 'all' && roll < 0.50) {
+            // 65% chance to spawn the featured enemy, rest is mixed
+            if (featured !== 'all' && roll < 0.65) {
                 this.spawnByType(featured, canvasW, canvasH, largeTier);
             } else {
                 this.spawnMixed(score, canvasW, canvasH, largeTier);
             }
 
-            // Phase 7+: 20% chance to also spawn an enemy from behind (left side)
-            if (phase >= 6 && Math.random() < 0.2) {
+            // Phase 10 (TOTAL CHAOS): double spawn
+            if (phase >= 9) {
+                this.spawnMixed(score, canvasW, canvasH, 0.4);
+            }
+
+            // Phase 5+: chance to spawn enemies from behind
+            if (phase >= 4 && Math.random() < (phase >= 9 ? 0.4 : 0.2)) {
                 const behindPool = ['drone', 'asteroid'];
                 if (phase >= 7) behindPool.push('ship');
                 const pick = behindPool[Utils.randomInt(0, behindPool.length - 1)];

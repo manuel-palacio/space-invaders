@@ -572,8 +572,8 @@ class Game {
                         // Asteroid splitting — asteroids break into smaller fragments
                         if (e.type === 'asteroid') {
                             // Only split if not already a tiny fragment
-                            if (e.radius > 10) {
-                                const fragCount = e.radius > 20 ? Utils.randomInt(3, 5) : Utils.randomInt(2, 3);
+                            if (e.radius > 8 * GAME_SCALE) {
+                                const fragCount = e.radius > 16 * GAME_SCALE ? Utils.randomInt(3, 5) : Utils.randomInt(2, 3);
 
                                 for (let f = 0; f < fragCount; f++) {
                                     const angle = ((f + 0.5) / fragCount) * Math.PI * 2;
