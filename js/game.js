@@ -592,10 +592,13 @@ class Game {
                                     frag.hp = 1;
                                     frag.maxHp = 1;
                                     frag.points = 5;
-                                    frag._spawnFrame = true; // immune to chain explosions this frame
-                                    // Scatter outward slowly
-                                    frag.vx = Math.cos(angle) * Utils.random(40, 100) - 30;
-                                    frag.vy = Math.sin(angle) * Utils.random(40, 100);
+                                    frag._spawnFrame = true;
+                                    // Push out from center immediately so fragments don't overlap kill point
+                                    const scatterDist = e.radius * 0.5;
+                                    frag.x = e.x + Math.cos(angle) * scatterDist;
+                                    frag.y = e.y + Math.sin(angle) * scatterDist;
+                                    frag.vx = Math.cos(angle) * Utils.random(80, 150) - 60;
+                                    frag.vy = Math.sin(angle) * Utils.random(60, 120);
                                     frag.wavy = false;
                                     frag.baseY = frag.y;
                                     // Regenerate shape for new radius
