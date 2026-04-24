@@ -151,6 +151,17 @@
                 game.audio.init();
                 game.audio.resume();
                 game.startGame();
+            } else if (game.state === STATE.SHOP) {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+                const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+                const result = game.shop.handleTouch(x, y, game.player);
+                if (result === 'continue') {
+                    game.state = STATE.PLAYING;
+                    game.spawner.timer = 2.0;
+                }
             }
         });
 

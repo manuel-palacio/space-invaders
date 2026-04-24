@@ -480,6 +480,9 @@ class Game {
             this.showRandomQuote();
         }
 
+        // Clear spawn-frame immunity from last frame
+        for (const e of this.spawner.enemies) { e._spawnFrame = false; }
+
         // Collisions
         this.checkCollisions();
     }
@@ -585,10 +588,11 @@ class Game {
                                     );
                                     // Override radius directly for precise control
                                     frag.radius = Math.max(6, fragR);
-                                    frag.sizeMultiplier = 0.5; // mark as fragment so it won't split again
+                                    frag.sizeMultiplier = 0.5;
                                     frag.hp = 1;
                                     frag.maxHp = 1;
                                     frag.points = 5;
+                                    frag._spawnFrame = true; // immune to chain explosions this frame
                                     // Scatter outward slowly
                                     frag.vx = Math.cos(angle) * Utils.random(40, 100) - 30;
                                     frag.vy = Math.sin(angle) * Utils.random(40, 100);
@@ -624,7 +628,7 @@ class Game {
                         const chainRadius = 60 * GAME_SCALE;
                         for (let j = enemies.length - 1; j >= 0; j--) {
                             const other = enemies[j];
-                            if (!other.active || other === e) continue;
+                            if (!other.active || other === e || other._spawnFrame) continue;
                             const dist = Utils.distance(e.x, e.y, other.x, other.y);
                             if (dist < chainRadius + other.radius) {
                                 const chainKill = other.takeDamage(1);

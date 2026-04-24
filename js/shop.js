@@ -141,11 +141,28 @@ class Shop {
             ctx.fillRect(0, 0, w, h);
         }
 
+        // Continue button
+        const btnW = 200;
+        const btnH = 36;
+        const btnX = (w - btnW) / 2;
+        const btnY = h * 0.86;
+        ctx.fillStyle = '#cc0000';
+        ctx.fillRect(btnX, btnY, btnW, btnH);
+        ctx.font = 'bold 14px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('CONTINUE', w / 2, btnY + 24);
+        // Store button bounds for touch
+        this._continueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+        this._itemStartY = startY;
+        this._itemH = itemH;
+        this._canvasH = h;
+
         // Controls hint
         ctx.textAlign = 'center';
-        ctx.font = '13px Courier New';
-        ctx.fillStyle = '#555';
-        ctx.fillText('W/S or UP/DOWN to select  •  SPACE to buy  •  ENTER to continue', w / 2, h * 0.92);
+        ctx.font = '11px Courier New';
+        ctx.fillStyle = '#444';
+        ctx.fillText('W/S to select • SPACE to buy • ENTER to continue', w / 2, h * 0.96);
 
         ctx.restore();
     }
@@ -161,6 +178,30 @@ class Shop {
 
     moveDown() {
         this.selectedIndex = (this.selectedIndex + 1) % SHOP_ITEMS.length;
+    }
+
+    handleTouch(x, y, player) {
+        // Check continue button
+        if (this._continueBtn &&
+            x >= this._continueBtn.x && x <= this._continueBtn.x + this._continueBtn.w &&
+            y >= this._continueBtn.y && y <= this._continueBtn.y + this._continueBtn.h) {
+            return 'continue';
+        }
+        // Check item taps
+        if (this._itemStartY && this._itemH) {
+            for (let i = 0; i < SHOP_ITEMS.length; i++) {
+                const iy = this._itemStartY + i * this._itemH;
+                if (y >= iy - this._itemH * 0.6 && y < iy + this._itemH * 0.4) {
+                    if (this.selectedIndex === i) {
+                        this.tryPurchase(player);
+                    } else {
+                        this.selectedIndex = i;
+                    }
+                    return 'item';
+                }
+            }
+        }
+        return null;
     }
 
     tryPurchase(player) {
