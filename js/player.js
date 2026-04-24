@@ -455,13 +455,17 @@ class Player {
 
         // Center shot
         const dmg = this.baseDamage || 1;
+        // Bullets follow the ship's tilt angle
+        const tilt = Math.atan2(this.vy, Math.abs(this.vx) + 1) * 0.35;
+        const bvx = bulletSpeed * Math.cos(tilt);
+        const bvy = bulletSpeed * Math.sin(tilt);
+
         const bounceCount = this.ricochet ? 3 : 0;
         const bulletColor = this.ricochet ? '#ff8800' : '#00ffff';
         const p = projectilePool.get();
         if (p) {
-            // Ricochet bullets get a slight random spread for chaos
-            const vy = this.ricochet ? Utils.random(-80, 80) : 0;
-            p.init(tipX, tipY, bulletSpeed, vy, bulletColor, bulletColor, false, dmg);
+            const extraVy = this.ricochet ? Utils.random(-80, 80) : 0;
+            p.init(tipX, tipY, bvx, bvy + extraVy, bulletColor, bulletColor, false, dmg);
             p.bounces = bounceCount;
         }
 
@@ -469,9 +473,9 @@ class Player {
         if (this.tripleShot) {
             const spread = 0.2;
             const p2 = projectilePool.get();
-            if (p2) { p2.init(tipX, tipY, bulletSpeed * Math.cos(spread), bulletSpeed * Math.sin(-spread), '#00ff66', '#00ff66', false); p2.bounces = bounceCount; }
+            if (p2) { p2.init(tipX, tipY, bvx * Math.cos(spread), bvy + bulletSpeed * Math.sin(-spread), '#00ff66', '#00ff66', false); p2.bounces = bounceCount; }
             const p3 = projectilePool.get();
-            if (p3) { p3.init(tipX, tipY, bulletSpeed * Math.cos(spread), bulletSpeed * Math.sin(spread), '#00ff66', '#00ff66', false); p3.bounces = bounceCount; }
+            if (p3) { p3.init(tipX, tipY, bvx * Math.cos(spread), bvy + bulletSpeed * Math.sin(spread), '#00ff66', '#00ff66', false); p3.bounces = bounceCount; }
         }
 
         particles.createMuzzleFlash(tipX + 5, tipY, 0, '#00ffff');
