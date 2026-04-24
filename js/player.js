@@ -483,9 +483,15 @@ class Player {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Engine trail — flickering cyan/blue flame (always drawn, even with sprite)
+        // Bank/tilt on vertical movement
+        const tilt = Math.atan2(this.vy, Math.abs(this.vx) + 1) * 0.35;
+        ctx.rotate(tilt);
+
+        // Engine trail — scales with speed, uses trail color
+        const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        const speedFrac = Math.min(1, spd / this.speed);
         const flicker = 0.7 + 0.3 * Math.sin(this.engineTime * 25);
-        const trailLen = 15 + 5 * flicker;
+        const trailLen = (12 + 15 * speedFrac) * flicker;
 
         ctx.save();
         ctx.shadowColor = '#00ffff';
@@ -538,6 +544,27 @@ class Player {
             ctx.beginPath();
             ctx.ellipse(5, 0, 5, 3, 0, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        // Power-up hull glow
+        const puCount = this.getActivePowerUpCount();
+        if (puCount > 0) {
+            const puColors = [];
+            if (this.rapidFire) puColors.push('#ffdd00');
+            if (this.tripleShot) puColors.push('#00ff66');
+            if (this.ricochet) puColors.push('#ff8800');
+            if (this.wingman) puColors.push('#4488ff');
+            const glowColor = puColors[Math.floor(this.engineTime * 3) % puColors.length] || '#cc0000';
+            ctx.strokeStyle = glowColor;
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 8 + puCount * 4;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.4 + 0.2 * Math.sin(this.engineTime * 6);
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
         }
 
         // Shield effect — power-up or active shield

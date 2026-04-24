@@ -1736,18 +1736,27 @@ class Boss extends Enemy {
         ctx.ellipse(-r * 0.35, 0, r * 0.38, r * 0.3, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Eyes — large, glowing yellow
+        // Compound insect eyes — angular, wide coverage
         const eyePulse = 0.7 + 0.3 * Math.sin(t * 5);
-        ctx.fillStyle = `rgba(255, 220, 0, ${eyePulse})`;
-        ctx.shadowColor = '#ffdd00';
-        ctx.shadowBlur = 8 * eyePulse;
-        ctx.beginPath(); ctx.arc(-r * 0.5, -r * 0.13, r * 0.08, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.5, r * 0.13, r * 0.08, 0, Math.PI * 2); ctx.fill();
-        // Pupils
-        ctx.fillStyle = '#331100';
+        ctx.fillStyle = `rgba(255, 180, 0, ${eyePulse})`;
+        ctx.shadowColor = '#ffaa00';
+        ctx.shadowBlur = 6 * eyePulse;
+        ctx.beginPath(); ctx.ellipse(-r * 0.52, -r * 0.15, r * 0.14, r * 0.09, -0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-r * 0.52, r * 0.15, r * 0.14, r * 0.09, 0.4, 0, Math.PI * 2); ctx.fill();
+        // Facet grid lines
+        ctx.strokeStyle = 'rgba(80, 40, 0, 0.5)';
+        ctx.lineWidth = 0.5;
         ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(-r * 0.52, -r * 0.13, r * 0.035, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.52, r * 0.13, r * 0.035, 0, Math.PI * 2); ctx.fill();
+        for (let f = -2; f <= 2; f++) {
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.52 + f * r * 0.025, -r * 0.22);
+            ctx.lineTo(-r * 0.52 + f * r * 0.025, -r * 0.08);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.52 + f * r * 0.025, r * 0.08);
+            ctx.lineTo(-r * 0.52 + f * r * 0.025, r * 0.22);
+            ctx.stroke();
+        }
 
         // Mandibles — pinching
         ctx.strokeStyle = '#aa5522';
@@ -1800,14 +1809,12 @@ class Boss extends Enemy {
         ctx.shadowBlur = 15 * glow;
         ctx.beginPath(); ctx.ellipse(r * 0.15, 0, r * 0.3, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
 
-        // Eyes
+        // Compound eye band — insect, no face
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.08, r * 0.06, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.3, r * 0.08, r * 0.06, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#111';
-        ctx.beginPath(); ctx.arc(-r * 0.32, -r * 0.08, r * 0.03, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.32, r * 0.08, r * 0.03, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(180, 220, 0, ${0.3 * glow})`;
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.28, 0, r * 0.05, r * 0.18, 0, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     _drawJellyfishBoss(ctx, r, t, color, pulse) {
@@ -1886,24 +1893,18 @@ class Boss extends Enemy {
         ctx.quadraticCurveTo(-r * 0.65, r * 0.4, -r * 0.65, 0);
         ctx.fill();
 
-        // Hollow eyes
+        // Void eyes — absorb light, no whites
         ctx.globalAlpha = alphaBase + 0.4;
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#cc88ff';
-        ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.12, r * 0.13, r * 0.17, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(r * 0.12, -r * 0.12, r * 0.13, r * 0.17, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#220044';
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.08, r * 0.06, r * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(r * 0.12, -r * 0.08, r * 0.06, r * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-
-        // Eerie mouth
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, r * 0.1, r * 0.2, 0.2, Math.PI - 0.2);
-        ctx.stroke();
+        ctx.fillStyle = '#000000';
+        ctx.shadowColor = '#6600cc';
+        ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.12, r * 0.14, r * 0.19, -0.15, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(r * 0.12, -r * 0.12, r * 0.14, r * 0.19, 0.15, 0, Math.PI * 2); ctx.fill();
+        // Purple glow around void edges
+        ctx.strokeStyle = `rgba(160, 60, 255, ${alphaBase + 0.4})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.12, r * 0.14, r * 0.19, -0.15, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(r * 0.12, -r * 0.12, r * 0.14, r * 0.19, 0.15, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
     }
 
@@ -2096,13 +2097,24 @@ class Boss extends Enemy {
         ctx.beginPath(); ctx.arc(-r * 0.2, -r * 0.2, r * 0.08, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(r * 0.15, -r * 0.15, r * 0.06, 0, Math.PI * 2); ctx.fill();
 
-        // Eyes — large, intelligent
-        ctx.fillStyle = '#eeddff';
+        // Alien cephalopod eyes — dark iris, no whites
+        ctx.fillStyle = 'hsla(275, 80%, 15%, 0.95)';
+        ctx.shadowBlur = 0;
         ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.05, r * 0.14, r * 0.1, -0.1, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.ellipse(r * 0.15, -r * 0.05, r * 0.14, r * 0.1, 0.1, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#110022';
-        ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.03, r * 0.04, r * 0.08, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(r * 0.15, -r * 0.03, r * 0.04, r * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+        // W-shaped pupils (real octopus anatomy)
+        ctx.strokeStyle = `rgba(200, 150, 255, ${0.4 * pulse})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.27, -r * 0.05); ctx.lineTo(-r * 0.22, r * 0.02);
+        ctx.lineTo(-r * 0.18, -r * 0.05); ctx.lineTo(-r * 0.14, r * 0.02);
+        ctx.lineTo(-r * 0.09, -r * 0.05);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(r * 0.08, -r * 0.05); ctx.lineTo(r * 0.12, r * 0.02);
+        ctx.lineTo(r * 0.16, -r * 0.05); ctx.lineTo(r * 0.2, r * 0.02);
+        ctx.lineTo(r * 0.24, -r * 0.05);
+        ctx.stroke();
     }
 
     _drawDevilBoss(ctx, r, t, color, pulse) {
@@ -2147,20 +2159,29 @@ class Boss extends Enemy {
         ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2);
         ctx.fill();
 
-        // Glowing eyes
+        // Menacing eyes — large, asymmetric, tilted
         const eyeGlow = 0.7 + 0.3 * Math.sin(t * 6);
         ctx.fillStyle = `rgba(255, 200, 0, ${eyeGlow})`;
         ctx.shadowColor = '#ffaa00';
-        ctx.shadowBlur = 12 * eyeGlow;
+        ctx.shadowBlur = 15 * eyeGlow;
         ctx.save();
-        ctx.translate(-r * 0.22, -r * 0.12);
-        ctx.rotate(-0.25);
-        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.13, r * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.translate(-r * 0.25, -r * 0.18);
+        ctx.rotate(-0.35);
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.22, r * 0.10, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
         ctx.save();
         ctx.translate(r * 0.18, -r * 0.12);
-        ctx.rotate(0.25);
-        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.13, r * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.rotate(0.2);
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.18, r * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        // Vertical slit pupils
+        ctx.fillStyle = '#200000';
+        ctx.shadowBlur = 0;
+        ctx.save(); ctx.translate(-r * 0.25, -r * 0.18); ctx.rotate(-0.35);
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.03, r * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        ctx.save(); ctx.translate(r * 0.18, -r * 0.12); ctx.rotate(0.2);
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.025, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
         // Jagged mouth
