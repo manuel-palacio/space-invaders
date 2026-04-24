@@ -308,66 +308,6 @@ class AudioManager {
         osc.start(now);
         osc.stop(now + 0.1);
     }
-
-    startDeathRay() {
-        if (!this.ctx || this.muted) return;
-        if (this._deathRayNodes) this.stopDeathRay();
-        const now = this.ctx.currentTime;
-
-        // Continuous frying/sizzle noise
-        const bufLen = 2;
-        const sr = this.ctx.sampleRate;
-        const buf = this.ctx.createBuffer(1, sr * bufLen, sr);
-        const data = buf.getChannelData(0);
-        for (let i = 0; i < data.length; i++) {
-            data[i] = (Math.random() * 2 - 1);
-        }
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buf;
-        noise.loop = true;
-
-        // Bandpass for electric sizzle
-        const bp = this.ctx.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.value = 2000;
-        bp.Q.value = 3;
-
-        // Low rumble oscillator
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.value = 80;
-
-        const oscGain = this.ctx.createGain();
-        oscGain.gain.value = 0.15;
-
-        const noiseGain = this.ctx.createGain();
-        noiseGain.gain.value = 0.25;
-
-        noise.connect(bp);
-        bp.connect(noiseGain);
-        noiseGain.connect(this.sfxGain);
-        osc.connect(oscGain);
-        oscGain.connect(this.sfxGain);
-
-        noise.start(now);
-        osc.start(now);
-
-        this._deathRayNodes = [noise, osc];
-        this._deathRayGains = [noiseGain, oscGain];
-    }
-
-    stopDeathRay() {
-        if (!this._deathRayNodes) return;
-        const now = this.ctx.currentTime;
-        this._deathRayGains.forEach(g => {
-            g.gain.linearRampToValueAtTime(0, now + 0.1);
-        });
-        setTimeout(() => {
-            this._deathRayNodes.forEach(n => { try { n.stop(); } catch(_){} });
-            this._deathRayNodes = null;
-            this._deathRayGains = null;
-        }, 150);
-    }
 }
 
 // ============================================================

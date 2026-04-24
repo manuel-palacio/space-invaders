@@ -13,7 +13,8 @@ class ShopItem {
     }
 
     getCost(currentLevel) {
-        return this.baseCost * (currentLevel + 1);
+        // Exponential scaling — each level costs significantly more
+        return Math.floor(this.baseCost * Math.pow(1.8, currentLevel));
     }
 }
 

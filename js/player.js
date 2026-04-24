@@ -52,10 +52,6 @@ class Player {
         this.wingmanY = 0;
         this.wingmanShootTimer = 0;
 
-        // Death Ray (laser beam power-up)
-        this.deathRay = false;
-        this.deathRayTimer = 0;
-        this.deathRayWidth = 40; // beam thickness
 
         // Active shield ability (E key)
         this.shieldCharges = 3;
@@ -123,8 +119,6 @@ class Player {
         this.ricochetTimer = 0;
         this.wingman = false;
         this.wingmanTimer = 0;
-        this.deathRay = false;
-        this.deathRayTimer = 0;
         this.fireRate = this.baseFireRate;
         this.shieldCharges = 3;
         this.activeShield = false;
@@ -233,13 +227,23 @@ class Player {
     }
 
     activateBomb(audio, particles, enemies) {
-        if (this.bombs <= 0 || this.bombCooldown > 0 || !this.alive) return false;
+        if (this.bombs <= 0 || this.bombCooldown > 0 || !this.alive) {
+            if (this.bombs <= 0 && audio) audio.playSmallExplosion();
+            return false;
+        }
         this.bombs--;
         this.bombCooldown = 1.0;
-        // Kill all enemies on screen
+        // Kill all non-boss enemies; damage bosses for 25% HP
         let kills = 0;
         for (const e of enemies) {
-            if (e.active) {
+            if (!e.active) continue;
+            if (e.type === 'boss') {
+                e.takeDamage(Math.ceil(e.maxHp * 0.25));
+                if (particles) {
+                    particles.createColorExplosion(e.x, e.y,
+                        ['#ffffff', '#ffdd00'], 20, 200, 0.5, 4);
+                }
+            } else {
                 e.active = false;
                 kills++;
                 if (particles) {
@@ -397,14 +401,6 @@ class Player {
             }
         }
 
-        // Death Ray timer
-        if (this.deathRay) {
-            this.deathRayTimer -= dt;
-            if (this.deathRayTimer <= 0) {
-                this.deathRay = false;
-            }
-        }
-
         // Active shield timer
         if (this.activeShield) {
             this.activeShieldTimer -= dt;
@@ -469,13 +465,23 @@ class Player {
             p.bounces = bounceCount;
         }
 
-        // Triple shot extras
+        // Triple shot extras — spread relative to firing angle
         if (this.tripleShot) {
-            const spread = 0.2;
+            const spread = 0.18;
             const p2 = projectilePool.get();
-            if (p2) { p2.init(tipX, tipY, bvx * Math.cos(spread), bvy + bulletSpeed * Math.sin(-spread), '#00ff66', '#00ff66', false); p2.bounces = bounceCount; }
+            if (p2) {
+                p2.init(tipX, tipY - 5,
+                    bulletSpeed * Math.cos(tilt - spread), bulletSpeed * Math.sin(tilt - spread),
+                    '#00ff66', '#00ff66', false, dmg);
+                p2.bounces = bounceCount;
+            }
             const p3 = projectilePool.get();
-            if (p3) { p3.init(tipX, tipY, bvx * Math.cos(spread), bvy + bulletSpeed * Math.sin(spread), '#00ff66', '#00ff66', false); p3.bounces = bounceCount; }
+            if (p3) {
+                p3.init(tipX, tipY + 5,
+                    bulletSpeed * Math.cos(tilt + spread), bulletSpeed * Math.sin(tilt + spread),
+                    '#00ff66', '#00ff66', false, dmg);
+                p3.bounces = bounceCount;
+            }
         }
 
         particles.createMuzzleFlash(tipX + 5, tipY, 0, '#00ffff');
@@ -711,65 +717,6 @@ class Player {
             ctx.fillText('NIN', 0, 2);
 
             ctx.restore();
-        }
-
-        // Death Ray beam
-        if (this.deathRay) {
-            ctx.save();
-            // Reset translate since beam needs screen coords
-            ctx.restore();
-            ctx.save();
-
-            const beamX = this.x + this.width / 2;
-            const beamY = this.y;
-            const beamW = this.canvas.width - beamX + 50;
-            const halfH = this.deathRayWidth / 2;
-            const t = Date.now() / 1000;
-            const flicker = 0.8 + 0.2 * Math.sin(t * 20);
-
-            // Outer glow
-            const outerGrad = ctx.createLinearGradient(beamX, beamY - halfH * 2, beamX, beamY + halfH * 2);
-            outerGrad.addColorStop(0, 'rgba(204, 0, 0, 0)');
-            outerGrad.addColorStop(0.3, `rgba(255, 30, 0, ${0.15 * flicker})`);
-            outerGrad.addColorStop(0.5, `rgba(255, 50, 0, ${0.3 * flicker})`);
-            outerGrad.addColorStop(0.7, `rgba(255, 30, 0, ${0.15 * flicker})`);
-            outerGrad.addColorStop(1, 'rgba(204, 0, 0, 0)');
-            ctx.fillStyle = outerGrad;
-            ctx.fillRect(beamX, beamY - halfH * 2, beamW, halfH * 4);
-
-            // Core beam
-            const coreGrad = ctx.createLinearGradient(beamX, beamY - halfH, beamX, beamY + halfH);
-            coreGrad.addColorStop(0, 'rgba(255, 50, 0, 0.1)');
-            coreGrad.addColorStop(0.3, `rgba(255, 100, 50, ${0.7 * flicker})`);
-            coreGrad.addColorStop(0.5, `rgba(255, 200, 150, ${0.9 * flicker})`);
-            coreGrad.addColorStop(0.7, `rgba(255, 100, 50, ${0.7 * flicker})`);
-            coreGrad.addColorStop(1, 'rgba(255, 50, 0, 0.1)');
-            ctx.fillStyle = coreGrad;
-            ctx.shadowColor = '#ff2200';
-            ctx.shadowBlur = 20 * flicker;
-            ctx.fillRect(beamX, beamY - halfH, beamW, halfH * 2);
-
-            // Hot white center line
-            ctx.fillStyle = `rgba(255, 255, 220, ${0.6 * flicker})`;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#ffffff';
-            ctx.fillRect(beamX, beamY - 3, beamW, 6);
-
-            // NIN text stamped along the beam
-            ctx.shadowBlur = 0;
-            ctx.font = 'bold 18px Courier New';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            const spacing = 80;
-            const scrollOffset = (t * 200) % spacing;
-            for (let nx = beamX + 30 - scrollOffset; nx < beamX + beamW; nx += spacing) {
-                const textAlpha = 0.4 + 0.3 * Math.sin(t * 8 + nx * 0.05);
-                ctx.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
-                ctx.fillText('NIN', nx, beamY);
-            }
-
-            ctx.restore();
-            return; // skip the normal ctx.restore below
         }
 
         ctx.restore();

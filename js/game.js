@@ -367,6 +367,10 @@ class Game {
                         this.spawner.enemies.splice(i, 1);
                     }
                 }
+                // Clear enemy bullets too
+                for (const b of this.projectiles.getEnemyBullets()) {
+                    b.active = false;
+                }
                 // Brief spawn pause
                 this.spawner.timer = 3.0;
             }

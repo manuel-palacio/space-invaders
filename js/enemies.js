@@ -24,6 +24,7 @@ class Enemy {
 
     isOffScreen(canvasW, canvasH) {
         return (this.x < -this.radius * 2 - 50 ||
+                this.x > canvasW + this.radius * 2 + 50 ||
                 this.y < -this.radius * 2 - 50 ||
                 this.y > canvasH + this.radius * 2 + 50);
     }
@@ -206,6 +207,7 @@ class EnemyShip extends Enemy {
         this.y = Utils.random(this.radius + 30, canvasH - this.radius - 30);
         this.vx = Utils.random(-120, -50);
         this.vy = 0;
+        this.canvas_w = canvasW;
 
         // Tracking behaviour — drift toward player y
         this.trackSpeed = Utils.random(40, 100);
