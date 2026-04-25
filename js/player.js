@@ -82,11 +82,13 @@ class Player {
         // Trail customization
         this.trailColors = [
             '#00ffff', '#ff3366', '#00ff66', '#ffaa00',
-            '#ff00ff', '#4488ff', '#ffffff'
+            '#ff00ff', '#4488ff', '#ffffff',
+            '#ff0066', '#cc0000', '#ffdd00', '#00aaff'
         ];
         this.trailColorNames = [
             'CYAN', 'CRIMSON', 'EMERALD', 'AMBER',
-            'MAGENTA', 'COBALT', 'GHOST WHITE'
+            'MAGENTA', 'COBALT', 'GHOST WHITE',
+            'NEON PINK', 'BLOOD RED', 'SOLAR GOLD', 'ICE BLUE'
         ];
         this.trailIndex = parseInt(localStorage.getItem('ninDefenderTrail') || '0', 10);
         this.trailColor = this.trailColors[this.trailIndex];

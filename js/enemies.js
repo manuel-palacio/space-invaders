@@ -2440,8 +2440,12 @@ class EnemySpawner {
             const roll = Math.random();
             const featured = phaseInfo.featured;
 
+            // 15% chance for formation spawn in eligible phases
+            if (phase >= 2 && Math.random() < 0.15) {
+                this.spawnFormation(phase, canvasW, canvasH);
+            }
             // 65% chance to spawn the featured enemy, rest is mixed
-            if (featured !== 'all' && roll < 0.65) {
+            else if (featured !== 'all' && roll < 0.65) {
                 this.spawnByType(featured, canvasW, canvasH, largeTier);
             } else {
                 this.spawnMixed(score, canvasW, canvasH, largeTier);
@@ -2577,6 +2581,75 @@ class EnemySpawner {
             }
         }
         return null;
+    }
+
+    spawnFormation(phase, canvasW, canvasH) {
+        const formations = ['v'];
+        if (phase >= 3) formations.push('wall');
+        if (phase >= 5) formations.push('pincer');
+        if (phase >= 7) formations.push('spiral');
+        const type = formations[Utils.randomInt(0, formations.length - 1)];
+        const baseSpeed = Utils.random(-140, -90);
+        const centerY = canvasH / 2;
+
+        switch (type) {
+            case 'v': {
+                const count = Utils.randomInt(5, 7);
+                for (let i = 0; i < count; i++) {
+                    const offset = i - Math.floor(count / 2);
+                    const d = new Drone(canvasW, canvasH, 0);
+                    d.x = canvasW + 20 + Math.abs(offset) * 25;
+                    d.y = centerY + offset * 30;
+                    d.vx = baseSpeed;
+                    d.baseY = d.y;
+                    d.wavyAmp = 5;
+                    this.enemies.push(d);
+                }
+                break;
+            }
+            case 'wall': {
+                const count = Utils.randomInt(4, 6);
+                const spacing = (canvasH - 80) / (count - 1);
+                for (let i = 0; i < count; i++) {
+                    const a = new Asteroid(canvasW, canvasH, 0.8);
+                    a.x = canvasW + 30;
+                    a.y = 40 + i * spacing;
+                    a.vx = baseSpeed * 0.7;
+                    a.wavy = false;
+                    a.baseY = a.y;
+                    this.enemies.push(a);
+                }
+                break;
+            }
+            case 'pincer': {
+                for (let side = -1; side <= 1; side += 2) {
+                    for (let i = 0; i < 3; i++) {
+                        const s = new EnemyShip(canvasW, canvasH, 1, this.assets);
+                        s.x = canvasW + 20 + i * 30;
+                        s.y = side > 0 ? 30 + i * 20 : canvasH - 30 - i * 20;
+                        s.vx = baseSpeed;
+                        s.canvas_w = canvasW;
+                        this.enemies.push(s);
+                    }
+                }
+                break;
+            }
+            case 'spiral': {
+                const count = 8;
+                for (let i = 0; i < count; i++) {
+                    const angle = (i / count) * Math.PI * 2;
+                    const d = new Drone(canvasW, canvasH, 0);
+                    d.x = canvasW + 40 + Math.cos(angle) * 60;
+                    d.y = centerY + Math.sin(angle) * 80;
+                    d.vx = baseSpeed;
+                    d.baseY = d.y;
+                    d.wavyAmp = 10;
+                    d.wavyFreq = 2;
+                    this.enemies.push(d);
+                }
+                break;
+            }
+        }
     }
 
     draw(ctx) {

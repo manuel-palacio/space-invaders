@@ -92,6 +92,18 @@ class Game {
         this._bossKillY = 0;
         this._bossKillStage = 0;
 
+        // Pause menu
+        this._pauseMenuIndex = 0;
+
+        // Difficulty
+        this.difficulties = ['EASY', 'NORMAL', 'BRUTAL'];
+        this.difficultyIndex = parseInt(localStorage.getItem('ninDefenderDifficulty') || '1', 10);
+        this.difficultySettings = {
+            EASY:   { lives: 8, baseInterval: 2.8, bulletSpeedMul: 0.5 },
+            NORMAL: { lives: 6, baseInterval: 2.2, bulletSpeedMul: 1.0 },
+            BRUTAL: { lives: 4, baseInterval: 1.6, bulletSpeedMul: 1.3 },
+        };
+
         // Menu animation
         this.menuTime = 0;
     }
@@ -104,8 +116,14 @@ class Game {
         this.score = 0;
         this.time = 0;
         this.powerupTimer = Utils.random(8, 15);
+
+        // Apply difficulty
+        const diff = this.difficultySettings[this.difficulties[this.difficultyIndex]];
         this.player.reset(this.canvas);
+        this.player.lives = diff.lives;
         this.spawner.reset();
+        this.spawner.baseInterval = diff.baseInterval;
+        this._bulletSpeedMul = diff.bulletSpeedMul;
         this.projectiles = new ProjectilePool(200);
         this.particles = new ParticlePool(1200);
         this.powerups = [];
@@ -213,8 +231,44 @@ class Game {
         }
 
         if (code === 'KeyP' || code === 'Escape') {
-            if (this.state === STATE.PLAYING || this.state === STATE.PAUSED) {
+            if (this.state === STATE.PLAYING) {
+                this._pauseMenuIndex = 0;
                 this.pause();
+            } else if (this.state === STATE.PAUSED) {
+                this.pause(); // resume
+            }
+        }
+
+        // Pause menu navigation
+        if (this.state === STATE.PAUSED) {
+            if (code === 'ArrowUp' || code === 'KeyW') {
+                this._pauseMenuIndex = (this._pauseMenuIndex - 1 + 3) % 3;
+            }
+            if (code === 'ArrowDown' || code === 'KeyS') {
+                this._pauseMenuIndex = (this._pauseMenuIndex + 1) % 3;
+            }
+            if (code === 'Space' || code === 'Enter') {
+                if (this._pauseMenuIndex === 0) this.pause(); // resume
+                else if (this._pauseMenuIndex === 1) this.startGame(); // restart
+                else if (this._pauseMenuIndex === 2) { // main menu
+                    this.state = STATE.MENU;
+                    if (this.music) this.music.stop();
+                    this.menuMusic.currentTime = 0;
+                    this.menuMusic.play().catch(() => {});
+                }
+            }
+            return;
+        }
+
+        // Difficulty selection on menu
+        if (this.state === STATE.MENU) {
+            if (code === 'ArrowLeft' || code === 'KeyA') {
+                this.difficultyIndex = (this.difficultyIndex - 1 + 3) % 3;
+                localStorage.setItem('ninDefenderDifficulty', this.difficultyIndex.toString());
+            }
+            if (code === 'ArrowRight' || code === 'KeyD') {
+                this.difficultyIndex = (this.difficultyIndex + 1) % 3;
+                localStorage.setItem('ninDefenderDifficulty', this.difficultyIndex.toString());
             }
         }
 
@@ -1131,6 +1185,17 @@ class Game {
         ctx.fillText('[ PRESS SPACE ]', w / 2, h * 0.5);
         ctx.globalAlpha = 1;
 
+        // Difficulty selector
+        ctx.font = 'bold 14px Courier New';
+        const diffY = h * 0.56;
+        const diffColors = ['#00cc44', '#cc8800', '#cc0000'];
+        ctx.fillStyle = '#555';
+        ctx.fillText('< DIFFICULTY >', w / 2, diffY);
+        ctx.font = `bold 16px Courier New`;
+        ctx.fillStyle = diffColors[this.difficultyIndex];
+        ctx.fillText(this.difficulties[this.difficultyIndex], w / 2, diffY + 20);
+        ctx.globalAlpha = 1;
+
         // Mobile hint
         if ('ontouchstart' in window) {
             ctx.font = `${Math.min(w * 0.02, 13)}px Courier New`;
@@ -1181,20 +1246,34 @@ class Game {
         ctx.save();
         ctx.fillStyle = 'rgba(5, 5, 5, 0.8)';
         ctx.fillRect(0, 0, w, h);
-        // Scan lines
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        for (let y = 0; y < h; y += 4) ctx.fillRect(0, y, w, 2);
+        ctx.drawImage(this._getScanLines(w, h), 0, 0);
 
         ctx.textAlign = 'center';
         ctx.font = 'bold 48px Courier New';
         ctx.fillStyle = '#cc0000';
         ctx.shadowColor = '#cc0000';
         ctx.shadowBlur = 20;
-        ctx.fillText('PAUSED', w / 2, h / 2 - 10);
+        ctx.fillText('PAUSED', w / 2, h * 0.3);
         ctx.shadowBlur = 0;
-        ctx.font = '16px Courier New';
-        ctx.fillStyle = '#555';
-        ctx.fillText('Press P or ESC to resume', w / 2, h / 2 + 30);
+
+        // Menu options
+        const options = ['RESUME', 'RESTART', 'MAIN MENU'];
+        const selected = this._pauseMenuIndex || 0;
+        ctx.font = 'bold 18px Courier New';
+        for (let i = 0; i < options.length; i++) {
+            const oy = h * 0.45 + i * 40;
+            if (i === selected) {
+                ctx.fillStyle = '#cc0000';
+                ctx.fillText('> ' + options[i] + ' <', w / 2, oy);
+            } else {
+                ctx.fillStyle = '#555';
+                ctx.fillText(options[i], w / 2, oy);
+            }
+        }
+
+        ctx.font = '12px Courier New';
+        ctx.fillStyle = '#333';
+        ctx.fillText('W/S to select • SPACE to confirm • P to resume', w / 2, h * 0.75);
         ctx.restore();
     }
 
