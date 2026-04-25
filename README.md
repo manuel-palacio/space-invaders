@@ -12,10 +12,12 @@ A Nine Inch Nails-themed space shooter built with HTML5 Canvas and vanilla JavaS
 | Space (hold) | Fire weapons |
 | E | Activate shield (charges, recharges after depletion) |
 | Q | Screen-clearing bomb |
-| T | Cycle trail color |
-| P / Esc | Pause |
+| T | Cycle trail color (11 colors) |
+| Y | Cycle ship skin (Classic, Stealth, Viper, Tank) |
+| Left/Right | Select difficulty on menu |
+| P / Esc | Pause (with Resume/Restart/Main Menu) |
 
-Mobile: virtual joystick + fire/shield/bomb touch buttons (landscape only).
+Mobile: virtual joystick + fire/shield/bomb touch buttons (landscape only). PWA installable — add to home screen for fullscreen.
 
 ### Easter Eggs
 
@@ -64,7 +66,15 @@ Bosses have evasive AI — they dodge away from player fire and perform strafing
 9. Devil's Domain
 10. Total Chaos (double spawns, 40% flanking)
 
-Phase transitions clear the screen, pause spawning, and announce the next phase. Enemies flank from behind starting at phase 5.
+Phase transitions clear the screen, pause spawning, and announce the next phase. Enemies flank from behind starting at phase 5. Enemy formations (V, Wall, Pincer, Spiral) appear from phase 3+.
+
+### Difficulty
+Three difficulty modes selectable on the menu screen:
+- **Easy** — 8 lives, slow spawns, 50% boss bullet speed
+- **Normal** — 6 lives, standard spawns
+- **Brutal** — 4 lives, fast spawns, 130% boss bullet speed
+
+Selection persists across sessions.
 
 ### Upgrade Shop
 After each boss kill, an inter-wave shop opens where you spend scrap on permanent upgrades:
@@ -100,7 +110,8 @@ All purchases persist across games via localStorage.
 - **Scrap collection** — earn scrap from kills, spend in upgrade shop
 - **Speed run timer** — phase timer shown in HUD
 - **Leaderboard** — top 10 scores with phase, time, and max combo data
-- **Trail customization** — 7 trail colors
+- **Trail customization** — 11 trail colors (T key)
+- **Ship skins** — 4 distinct hull designs: Classic, Stealth, Viper, Tank (Y key)
 - **Rage mode** — 3s invincibility on respawn
 
 ### Audio

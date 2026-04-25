@@ -1221,6 +1221,7 @@ class Game {
             ['E',             'Shield (3 charges)'],
             ['Q',             'Screen bomb'],
             ['T',             'Cycle trail'],
+            ['Y',             'Cycle ship skin'],
             ['P / ESC',       'Pause']
         ];
         controls.forEach(([key, desc], i) => {
