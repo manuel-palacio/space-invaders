@@ -93,6 +93,10 @@ class Player {
         this.trailIndex = parseInt(localStorage.getItem('ninDefenderTrail') || '0', 10);
         this.trailColor = this.trailColors[this.trailIndex];
 
+        // Ship skins
+        this.skinNames = ['CLASSIC', 'STEALTH', 'VIPER', 'TANK'];
+        this.skinIndex = parseInt(localStorage.getItem('ninDefenderSkin') || '0', 10);
+
         // Combo system (tracked here for score integration)
         this.combo = 0;
         this.comboTimer = 0;
@@ -226,6 +230,113 @@ class Player {
         this.trailIndex = (this.trailIndex + 1) % this.trailColors.length;
         this.trailColor = this.trailColors[this.trailIndex];
         localStorage.setItem('ninDefenderTrail', this.trailIndex.toString());
+    }
+
+    cycleSkin() {
+        this.skinIndex = (this.skinIndex + 1) % this.skinNames.length;
+        localStorage.setItem('ninDefenderSkin', this.skinIndex.toString());
+    }
+
+    _drawShipSkin(ctx, skin) {
+        const w = this.width;
+        const h = this.height;
+        switch (skin) {
+            case 0: // CLASSIC — angular diamond
+                ctx.fillStyle = '#ddeeff';
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 1.5;
+                ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.moveTo(w / 2, 0);
+                ctx.lineTo(-w / 2 + 5, -h / 2);
+                ctx.lineTo(-w / 2, -h / 2 + 5);
+                ctx.lineTo(-w / 2 + 8, 0);
+                ctx.lineTo(-w / 2, h / 2 - 5);
+                ctx.lineTo(-w / 2 + 5, h / 2);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#00ffff'; ctx.shadowBlur = 4;
+                ctx.beginPath(); ctx.ellipse(5, 0, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+                break;
+
+            case 1: // STEALTH — sleek narrow dark fighter
+                ctx.fillStyle = '#1a1a2a';
+                ctx.strokeStyle = '#cc0000';
+                ctx.lineWidth = 1;
+                ctx.shadowColor = '#cc0000'; ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.moveTo(w / 2 + 3, 0);
+                ctx.lineTo(w * 0.1, -h * 0.2);
+                ctx.lineTo(-w * 0.3, -h * 0.45);
+                ctx.lineTo(-w / 2, -h * 0.15);
+                ctx.lineTo(-w / 2 + 4, 0);
+                ctx.lineTo(-w / 2, h * 0.15);
+                ctx.lineTo(-w * 0.3, h * 0.45);
+                ctx.lineTo(w * 0.1, h * 0.2);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                // Red slit cockpit
+                ctx.fillStyle = '#cc0000'; ctx.shadowBlur = 4;
+                ctx.beginPath(); ctx.ellipse(w * 0.15, 0, 4, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+                break;
+
+            case 2: // VIPER — twin-pronged aggressive
+                ctx.fillStyle = '#2a3a1a';
+                ctx.strokeStyle = '#66ff22';
+                ctx.lineWidth = 1.5;
+                ctx.shadowColor = '#66ff22'; ctx.shadowBlur = 6;
+                // Upper prong
+                ctx.beginPath();
+                ctx.moveTo(w / 2, -h * 0.1);
+                ctx.lineTo(-w * 0.1, -h * 0.15);
+                ctx.lineTo(-w / 2, -h * 0.45);
+                ctx.lineTo(-w / 2 + 5, -h * 0.1);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                // Lower prong
+                ctx.beginPath();
+                ctx.moveTo(w / 2, h * 0.1);
+                ctx.lineTo(-w * 0.1, h * 0.15);
+                ctx.lineTo(-w / 2, h * 0.45);
+                ctx.lineTo(-w / 2 + 5, h * 0.1);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                // Center body
+                ctx.fillStyle = '#1a2a0a';
+                ctx.beginPath();
+                ctx.ellipse(-w * 0.05, 0, w * 0.25, h * 0.12, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Green cockpit
+                ctx.fillStyle = '#66ff22'; ctx.shadowBlur = 5;
+                ctx.beginPath(); ctx.arc(w * 0.1, 0, 3, 0, Math.PI * 2); ctx.fill();
+                break;
+
+            case 3: // TANK — wide, heavy, armored
+                ctx.fillStyle = '#3a3a3a';
+                ctx.strokeStyle = '#ff8800';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 5;
+                ctx.beginPath();
+                ctx.moveTo(w * 0.35, 0);
+                ctx.lineTo(w * 0.1, -h * 0.5);
+                ctx.lineTo(-w * 0.4, -h * 0.5);
+                ctx.lineTo(-w / 2, -h * 0.3);
+                ctx.lineTo(-w / 2 + 3, 0);
+                ctx.lineTo(-w / 2, h * 0.3);
+                ctx.lineTo(-w * 0.4, h * 0.5);
+                ctx.lineTo(w * 0.1, h * 0.5);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                // Armor plates
+                ctx.strokeStyle = 'rgba(255,136,0,0.3)'; ctx.lineWidth = 1; ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.moveTo(-w * 0.1, -h * 0.48); ctx.lineTo(-w * 0.1, h * 0.48); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(w * 0.05, -h * 0.45); ctx.lineTo(w * 0.05, h * 0.45); ctx.stroke();
+                // Orange cockpit
+                ctx.fillStyle = '#ff8800'; ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 4;
+                ctx.beginPath(); ctx.ellipse(w * 0.15, 0, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+                break;
+        }
+        ctx.shadowBlur = 0;
     }
 
     activateBomb(audio, particles, enemies) {
@@ -524,38 +635,17 @@ class Player {
         ctx.fill();
         ctx.restore();
 
-        // Ship body — sprite or Canvas fallback
-        if (this.assets.playerShip) {
+        // Ship body — sprite or canvas skin
+        if (this.assets.playerShip && this.skinIndex === 0) {
             const img = this.assets.playerShip;
             const drawH = this.height * 2;
             const drawW = drawH * (img.width / img.height);
             ctx.save();
-            ctx.rotate(Math.PI / 2); // sprite faces up → rotate to face right
+            ctx.rotate(Math.PI / 2);
             ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
             ctx.restore();
         } else {
-            ctx.fillStyle = '#ddeeff';
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 1.5;
-            ctx.shadowColor = '#00ffff';
-            ctx.shadowBlur = 8;
-
-            ctx.beginPath();
-            ctx.moveTo(this.width / 2, 0);
-            ctx.lineTo(-this.width / 2 + 5, -this.height / 2);
-            ctx.lineTo(-this.width / 2, -this.height / 2 + 5);
-            ctx.lineTo(-this.width / 2 + 8, 0);
-            ctx.lineTo(-this.width / 2, this.height / 2 - 5);
-            ctx.lineTo(-this.width / 2 + 5, this.height / 2);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = '#00ffff';
-            ctx.shadowBlur = 4;
-            ctx.beginPath();
-            ctx.ellipse(5, 0, 5, 3, 0, 0, Math.PI * 2);
-            ctx.fill();
+            this._drawShipSkin(ctx, this.skinIndex);
         }
 
         // Power-up hull glow

@@ -401,6 +401,10 @@ class Game {
             this.player.cycleTrail();
             this.keys['KeyT'] = false;
         }
+        if (this.keys['KeyY'] && this.state === STATE.PLAYING) {
+            this.player.cycleSkin();
+            this.keys['KeyY'] = false;
+        }
 
         // Enemies
         this.spawner.update(dt, this.score, this.canvas.width, this.canvas.height,
@@ -1134,6 +1138,8 @@ class Game {
         ctx.textAlign = 'right';
         ctx.fillStyle = this.player.trailColor || '#cc0000';
         ctx.fillText(`T: TRAIL [${this.player.trailColorNames[this.player.trailIndex]}]`, w - 16, h - 20);
+        ctx.fillStyle = '#666';
+        ctx.fillText(`Y: SKIN [${this.player.skinNames[this.player.skinIndex]}]`, w - 16, h - 36);
 
         ctx.restore();
     }
