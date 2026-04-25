@@ -86,6 +86,12 @@ class Game {
         // Pre-rendered scan lines overlay
         this._scanCanvas = null;
 
+        // Boss kill cinematic
+        this._bossKillTimer = 0;
+        this._bossKillX = 0;
+        this._bossKillY = 0;
+        this._bossKillStage = 0;
+
         // Menu animation
         this.menuTime = 0;
     }
@@ -386,11 +392,58 @@ class Game {
         }
         if (this.phaseAnnounceTimer > 0) this.phaseAnnounceTimer -= dt;
 
-        // Check if boss is still alive — open shop when boss dies
+        // Check if boss is still alive
         if (this.bossActive) {
             const bossAlive = this.spawner.enemies.some(e => e.type === 'boss' && e.active);
-            if (!bossAlive) {
-                this.bossActive = false;
+            if (!bossAlive) this.bossActive = false;
+        }
+
+        // Boss kill cinematic — staged explosions before shop
+        if (this._bossKillTimer > 0) {
+            this._bossKillTimer -= dt;
+            const elapsed = 2.0 - this._bossKillTimer;
+            const bx = this._bossKillX;
+            const by = this._bossKillY;
+
+            // Stage 0: initial burst (0.0s)
+            if (this._bossKillStage === 0) {
+                this._bossKillStage = 1;
+                this.shake.shake(20, 0.5);
+                this.particles.createColorExplosion(bx, by,
+                    ['#ffffff', '#ffdd00', '#ff8800'], 40, 400, 1.0, 7);
+            }
+            // Stage 1: secondary explosions (0.3s)
+            if (this._bossKillStage === 1 && elapsed > 0.3) {
+                this._bossKillStage = 2;
+                this.shake.shake(15, 0.3);
+                this.particles.createColorExplosion(bx + Utils.random(-30, 30), by + Utils.random(-30, 30),
+                    ['#ff3366', '#ff6600', '#ffffff'], 30, 350, 0.8, 6);
+                this.audio.playExplosion();
+            }
+            // Stage 2: ring explosion (0.7s)
+            if (this._bossKillStage === 2 && elapsed > 0.7) {
+                this._bossKillStage = 3;
+                this.shake.shake(12, 0.3);
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const rx = bx + Math.cos(angle) * 50;
+                    const ry = by + Math.sin(angle) * 50;
+                    this.particles.createColorExplosion(rx, ry,
+                        ['#cc0000', '#ff4400', '#ffaa00'], 15, 250, 0.6, 4);
+                }
+                this.audio.playExplosion();
+            }
+            // Stage 3: final flash (1.2s)
+            if (this._bossKillStage === 3 && elapsed > 1.2) {
+                this._bossKillStage = 4;
+                this.shake.shake(25, 0.4);
+                this.particles.createColorExplosion(bx, by,
+                    ['#ffffff', '#ffffff', '#ffddaa'], 60, 500, 1.2, 8);
+                this.audio.playExplosion();
+            }
+            // Open shop after cinematic ends
+            if (this._bossKillTimer <= 0) {
+                this._bossKillStage = 0;
                 this.state = STATE.SHOP;
                 this.shop.selectedIndex = 0;
             }
@@ -630,6 +683,14 @@ class Game {
                             fx.count, 300, 0.8, 5);
                         this.shake.shake(fx.shake, 0.15);
                         this.audio.playExplosion();
+
+                        // Boss kill — trigger cinematic
+                        if (e.type === 'boss') {
+                            this._bossKillTimer = 2.0;
+                            this._bossKillX = e.x;
+                            this._bossKillY = e.y;
+                            this._bossKillStage = 0;
+                        }
 
                         // Chain explosion — damage nearby enemies
                         const chainRadius = 60 * GAME_SCALE;
