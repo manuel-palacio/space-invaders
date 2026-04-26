@@ -862,7 +862,7 @@ class Game {
         // Background
         this.background.draw(ctx);
 
-        if (this.state === STATE.PLAYING || this.state === STATE.PAUSED) {
+        if (this.state === STATE.PLAYING || this.state === STATE.PAUSED || this.state === STATE.WAVE_CLEAR) {
             // Environmental hazards (behind gameplay)
             this.asteroidBelt.draw(ctx);
             this.blackHole.draw(ctx);
@@ -893,14 +893,15 @@ class Game {
         ctx.restore();
 
         // HUD and overlays (not affected by shake)
-        if (this.state === STATE.PLAYING || this.state === STATE.PAUSED) {
+        if (this.state === STATE.PLAYING || this.state === STATE.PAUSED || this.state === STATE.WAVE_CLEAR) {
             this.drawHUD(ctx);
         }
 
-        if (this.state === STATE.MENU)      this.drawMenu(ctx);
-        if (this.state === STATE.PAUSED)     this.drawPause(ctx);
-        if (this.state === STATE.SHOP)       this.shop.draw(ctx, this.canvas, this.player);
-        if (this.state === STATE.GAME_OVER)  this.drawGameOver(ctx);
+        if (this.state === STATE.MENU)        this.drawMenu(ctx);
+        if (this.state === STATE.PAUSED)      this.drawPause(ctx);
+        if (this.state === STATE.SHOP)        this.shop.draw(ctx, this.canvas, this.player);
+        if (this.state === STATE.WAVE_CLEAR)  this.drawWaveClear(ctx);
+        if (this.state === STATE.GAME_OVER)   this.drawGameOver(ctx);
     }
 
     // ----- HUD ----- (NIN industrial palette)
@@ -1259,6 +1260,34 @@ class Game {
             ctx.shadowBlur = 0;
             ctx.fillText(`HIGH SCORE: ${this.highScore}`, w / 2, h * 0.92);
         }
+
+        ctx.restore();
+    }
+
+    // ----- Wave Clear banner ----- (gold reward moment)
+    drawWaveClear(ctx) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Fade out over the last 0.5 seconds
+        const alpha = Math.min(1, this._waveClearTimer / 0.5);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.textAlign = 'center';
+
+        // Main text — gold with glow
+        ctx.font = `bold ${Math.min(w * 0.05, 40)}px Courier New`;
+        ctx.fillStyle = '#ffdd00';
+        ctx.shadowColor = '#ffdd00';
+        ctx.shadowBlur = 15;
+        ctx.fillText('WAVE CLEAR', w / 2, h * 0.4);
+
+        // Subtitle — dim gold, no glow
+        ctx.shadowBlur = 0;
+        ctx.font = '13px Courier New';
+        ctx.fillStyle = '#aa8800';
+        ctx.fillText(`PHASE ${this._waveClearPhase + 1} COMPLETE`, w / 2, h * 0.4 + 35);
 
         ctx.restore();
     }
