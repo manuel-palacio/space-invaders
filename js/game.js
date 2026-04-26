@@ -352,6 +352,17 @@ class Game {
             return;
         }
 
+        if (this.state === STATE.WAVE_CLEAR) {
+            this._waveClearTimer -= dt;
+            this.background.update(dt);
+            this.particles.update(dt);
+            if (this._waveClearTimer <= 0) {
+                this.state = STATE.SHOP;
+                this.shop.selectedIndex = 0;
+            }
+            return;
+        }
+
         if (this.state === STATE.GAME_OVER) {
             this.background.update(dt);
             this.particles.update(dt);
@@ -504,11 +515,12 @@ class Game {
                     ['#ffffff', '#ffffff', '#ffddaa'], 60, 500, 1.2, 8);
                 this.audio.playExplosion();
             }
-            // Open shop after cinematic ends
+            // Show wave clear banner after cinematic ends
             if (this._bossKillTimer <= 0) {
                 this._bossKillStage = 0;
-                this.state = STATE.SHOP;
-                this.shop.selectedIndex = 0;
+                this.state = STATE.WAVE_CLEAR;
+                this._waveClearTimer = 2.5;
+                this._waveClearPhase = this.lastPhase;
             }
         }
 
