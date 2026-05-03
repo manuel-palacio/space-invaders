@@ -1,5 +1,6 @@
 FROM nginx:alpine
 COPY index.html /usr/share/nginx/html/
+COPY manifest.json /usr/share/nginx/html/
 # Inject build timestamp as cache buster
 RUN sed -i "s/BUILD_VERSION/$(date +%s)/" /usr/share/nginx/html/index.html
 COPY css/ /usr/share/nginx/html/css/
