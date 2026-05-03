@@ -2,6 +2,16 @@
 // player.js — Player ship with movement, shooting, power-ups
 // ============================================================
 
+// Skin passives — keyed by Player.skinIndex (matches order of skinNames).
+// applyUpgrades() reads this AFTER computing base stats so the modifiers
+// stack on top of (current upgrade levels + difficulty start values).
+const SKIN_PASSIVES = {
+    0: { name: 'CLASSIC', desc: 'Balanced — no modifier',     speedMul: 1.0,  dmgMul: 1.0, maxLivesDelta:  0, alwaysTripleShot: false },
+    1: { name: 'STEALTH', desc: '+15% speed, -1 max life',    speedMul: 1.15, dmgMul: 1.0, maxLivesDelta: -1, alwaysTripleShot: false },
+    2: { name: 'VIPER',   desc: 'Always triple, -20% damage', speedMul: 1.0,  dmgMul: 0.8, maxLivesDelta:  0, alwaysTripleShot: true  },
+    3: { name: 'TANK',    desc: '+1 max life, -20% speed',    speedMul: 0.8,  dmgMul: 1.0, maxLivesDelta:  1, alwaysTripleShot: false },
+};
+
 class Player {
     constructor(canvas, assets) {
         this.canvas = canvas;
@@ -36,6 +46,7 @@ class Player {
         // Power-ups
         this.tripleShot = false;
         this.tripleShotTimer = 0;
+        this.tripleShotPassive = false; // VIPER skin = always-on triple shot
         this.rapidFire = false;
         this.rapidFireTimer = 0;
         this.shield = false;
@@ -178,12 +189,14 @@ class Player {
 
     // Synergy detection: returns the first matching combo key, or null. Each
     // synergy key has a corresponding effect baked into shoot() / wingman fire /
-    // projectile setup; check this once for HUD display.
+    // projectile setup; check this once for HUD display. VIPER skin's passive
+    // triple counts as triple for synergy purposes — it's the same mechanic.
     getActiveSynergy() {
-        if (this.ricochet && this.tripleShot) return 'CHAIN_REACTION';
+        const triple = this.tripleShot || this.tripleShotPassive;
+        if (this.ricochet && triple)          return 'CHAIN_REACTION';
         if (this.rapidFire && this.wingman)   return 'FIRE_SUPPORT';
-        if (this.shield && this.tripleShot)   return 'PIERCE_SHOT';
-        if (this.rapidFire && this.tripleShot) return 'PENTA_SPREAD';
+        if (this.shield && triple)            return 'PIERCE_SHOT';
+        if (this.rapidFire && triple)         return 'PENTA_SPREAD';
         if (this.wingman && this.ricochet)    return 'BOUNCE_DRONE';
         return null;
     }
@@ -235,7 +248,8 @@ class Player {
     // CANONICAL stat calculator — single source of truth for upgrade math.
     // Every ShopItem.apply lambda in shop.js delegates here; do not
     // duplicate these formulas anywhere else, or shop and gameplay will
-    // silently drift out of sync.
+    // silently drift out of sync. Skin passives apply as a final modifier
+    // step after the base upgrade levels are converted to stats.
     // ============================================================
     applyUpgrades() {
         const u = this.upgrades || {};
@@ -253,6 +267,15 @@ class Player {
         this.maxBombs         = 2 + bmbLevel;
         this.maxShieldCharges = 3 + shdLevel;
         this.maxLives         = 8 + livLevel;
+
+        // Skin passive modifiers — applied LAST so they multiply/offset the
+        // upgrade-derived stats. tripleShotPassive is read by shoot() and
+        // getActiveSynergy() in addition to the timed tripleShot flag.
+        const passive = SKIN_PASSIVES[this.skinIndex] || SKIN_PASSIVES[0];
+        this.speed       *= passive.speedMul;
+        this.baseDamage  *= passive.dmgMul;
+        this.maxLives    += passive.maxLivesDelta;
+        this.tripleShotPassive = passive.alwaysTripleShot;
 
         // Refill shields on every recompute — buying any upgrade tops
         // them up, matching the original shop lambda's behavior.
@@ -290,6 +313,8 @@ class Player {
     cycleSkin() {
         this.skinIndex = (this.skinIndex + 1) % this.skinNames.length;
         localStorage.setItem('ninDefenderSkin', this.skinIndex.toString());
+        // Re-apply so the new skin's passive (speed/dmg/maxLives/triple) takes effect.
+        this.applyUpgrades();
     }
 
     _drawShipSkin(ctx, skin) {
@@ -646,9 +671,13 @@ class Player {
 
         const bounceCount = this.ricochet ? 3 : 0;
         const synergy = this.getActiveSynergy();
+        // VIPER's passive triple shoots distinctively-colored bullets unless an
+        // active power-up overrides the color via a synergy or ricochet.
+        const viperOnly = this.tripleShotPassive && !this.tripleShot && !synergy && !this.ricochet;
         const bulletColor = synergy === 'CHAIN_REACTION' ? '#ff4400'
                           : synergy === 'PIERCE_SHOT'    ? '#00aaff'
                           : synergy === 'PENTA_SPREAD'   ? '#ff00ff'
+                          : viperOnly                    ? '#ff6688'
                           : this.ricochet                ? '#ff8800'
                           : '#00ffff';
 
@@ -662,8 +691,9 @@ class Player {
             p.pierce = synergy === 'PIERCE_SHOT';
         }
 
-        // Triple shot extras — spread relative to firing angle
-        if (this.tripleShot) {
+        // Triple shot extras — spread relative to firing angle. VIPER skin
+        // counts as triple via tripleShotPassive in addition to the timed buff.
+        if (this.tripleShot || this.tripleShotPassive) {
             const spread = 0.18;
             const p2 = projectilePool.get();
             if (p2) {

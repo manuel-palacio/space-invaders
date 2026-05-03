@@ -120,7 +120,10 @@ const SHOP_ITEMS = [
     new ShopItem({
         id: 'ship_skin', name: 'SHIP SKIN', kind: 'cosmetic',
         getCost: () => 0,
-        getDescription: (p) => `SKIN: ${p.skinNames[p.skinIndex]}`,
+        getDescription: (p) => {
+            const passive = SKIN_PASSIVES[p.skinIndex] || SKIN_PASSIVES[0];
+            return `${p.skinNames[p.skinIndex]} — ${passive.desc}`;
+        },
         canPurchase: () => true,
         apply: (p) => { p.cycleSkin(); },
     }),
