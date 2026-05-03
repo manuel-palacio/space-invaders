@@ -582,9 +582,13 @@ class Player {
         }
 
         // Wingman timer + follow
+        // Reset the per-frame expiry signal that game.js polls for the burst FX.
+        this._wingmanExpired = null;
         if (this.wingman) {
             this.wingmanTimer -= dt;
             if (this.wingmanTimer <= 0) {
+                // Hand off the burst position to game.js BEFORE clearing state.
+                this._wingmanExpired = { x: this.wingmanX, y: this.wingmanY };
                 this.wingman = false;
             } else {
                 // Follow player with lag
@@ -870,6 +874,12 @@ class Player {
 
         // Wingman drone — aggressive NIN-themed attack drone
         if (this.wingman) {
+            // Rapid flicker over the last 0.4s warns of imminent disintegration.
+            const expiring = this.wingmanTimer < 0.4;
+            const flicker = expiring && Math.sin(this.engineTime * 50) > 0;
+            if (flicker) {
+                // Skip drawing this frame for the flicker effect
+            } else {
             ctx.save();
             ctx.translate(this.wingmanX - this.x, this.wingmanY - this.y);
             const t = this.engineTime;
@@ -945,6 +955,7 @@ class Player {
             ctx.fillText('NIN', 0, 2);
 
             ctx.restore();
+            } // close flicker else
         }
 
         ctx.restore();

@@ -403,6 +403,13 @@ class Game {
                 ['#ff2200', '#ffaa00', '#ffffff'], 18, 200, 0.5, 4);
             this.shake.shake(2, 0.1);
         }
+        // Wingman disintegration burst — fired the frame the wingman expires.
+        if (this.player._wingmanExpired) {
+            const w = this.player._wingmanExpired;
+            this.particles.createColorExplosion(w.x, w.y,
+                ['#cc0000', '#ff4400', '#ff8800', '#ffffff'], 20, 240, 0.6, 4);
+            this.shake.shake(4, 0.1);
+        }
         this.player.drawTrail(this.particles);
 
         // Auto-fire if key held or touch — apply micro shake + recoil per shot.
