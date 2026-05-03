@@ -250,6 +250,9 @@ class EnemyShip extends Enemy {
         }
     }
 
+    // Facehugger grub — long parasitic body with armor plates, two stabbing
+    // proboscises, hooked claws, biting mouth. Tier 2 adds a bioluminescent
+    // wound glow on the underside. Forward (toward player) is -X.
     draw(ctx) {
         if (!this.active) return;
         ctx.save();
@@ -257,88 +260,133 @@ class EnemyShip extends Enemy {
 
         const r = this.radius;
         const t = this.time;
-        const hsl = `hsl(${this.hue}, 80%, 50%)`;
-        const hslDim = `hsl(${this.hue}, 60%, 25%)`;
-        const hslBright = `hsl(${this.hue}, 100%, 70%)`;
+        const tier2 = this.tier === 2;
+        // Very dark alien flesh — tier 1 red-brown, tier 2 deep blue-black.
+        const bodyHue = tier2 ? Math.max(200, this.hue) : Math.min(30, this.hue);
+        const flesh     = `hsl(${bodyHue}, 70%, 20%)`;
+        const fleshDim  = `hsl(${bodyHue}, 60%, 12%)`;
+        const fleshHigh = `hsl(${bodyHue}, 50%, 32%)`;
 
-        // Legs — 3 per side, scuttling animation
-        ctx.strokeStyle = hslDim;
-        ctx.lineWidth = this.tier === 2 ? 2 : 1.5;
+        // 4 pairs of hooked claws gripping the air — slightly de-synced phases.
+        ctx.strokeStyle = fleshDim;
+        ctx.lineWidth = tier2 ? 2 : 1.5;
         ctx.lineCap = 'round';
         for (let side = -1; side <= 1; side += 2) {
-            for (let i = 0; i < 3; i++) {
-                const phase = this.legPhase + i * 1.2 + (side > 0 ? Math.PI * 0.5 : 0);
-                const wave = Math.sin(t * 10 + phase) * 0.25;
-                const baseAngle = side * 0.5 + (i - 1) * 0.4;
-                const jx = Math.cos(baseAngle + wave) * r * 0.6;
-                const jy = Math.sin(baseAngle + wave) * r * 0.6 * side;
-                const tx = Math.cos(baseAngle + wave + side * 0.3) * r * 1.1;
-                const ty = Math.sin(baseAngle + wave + side * 0.3) * r * 0.9 * side;
+            for (let i = 0; i < 4; i++) {
+                const phase = this.legPhase + i * 0.9 + (side > 0 ? Math.PI * 0.4 : 0);
+                const wave = Math.sin(t * 12 + phase) * 0.35;
+                const baseX = (i - 1.5) * r * 0.3; // distributed along body
+                const baseY = side * r * 0.18;
+                const jointX = baseX + Math.cos(wave) * r * 0.18;
+                const jointY = baseY + side * r * 0.30;
+                const hookX  = jointX + Math.cos(wave + side * 0.5) * r * 0.20;
+                const hookY  = jointY + side * (r * 0.18 + Math.abs(Math.sin(wave * 2)) * r * 0.05);
                 ctx.beginPath();
-                ctx.moveTo(0, side * r * 0.1);
-                ctx.lineTo(jx, jy);
-                ctx.lineTo(tx, ty);
+                ctx.moveTo(baseX, baseY);
+                ctx.lineTo(jointX, jointY);
+                ctx.lineTo(hookX, hookY);
+                ctx.stroke();
+                // Hook spike at tip
+                ctx.beginPath();
+                ctx.moveTo(hookX, hookY);
+                ctx.lineTo(hookX - r * 0.06, hookY + side * r * 0.04);
                 ctx.stroke();
             }
         }
 
-        // Antennae
-        ctx.strokeStyle = hsl;
+        // Long narrow body — chitinous oval, plated rear-to-front.
+        ctx.shadowBlur = 0;
+        const bodyGrad = ctx.createLinearGradient(-r * 0.7, 0, r * 0.7, 0);
+        bodyGrad.addColorStop(0, fleshDim);
+        bodyGrad.addColorStop(0.5, flesh);
+        bodyGrad.addColorStop(1, fleshDim);
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.85, r * 0.32, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Armor plates — 4 ribbed bands across the back
+        ctx.strokeStyle = `hsla(${bodyHue}, 50%, 30%, 0.7)`;
         ctx.lineWidth = 1;
-        const antWave = Math.sin(t * 4) * 0.2;
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.4, -r * 0.15);
-        ctx.quadraticCurveTo(-r * 0.8, -r * 0.6 - antWave * r, -r * 0.9, -r * 0.5);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.4, r * 0.15);
-        ctx.quadraticCurveTo(-r * 0.8, r * 0.6 + antWave * r, -r * 0.9, r * 0.5);
-        ctx.stroke();
-        // Antenna tips
-        ctx.fillStyle = hslBright;
-        ctx.shadowColor = hslBright;
-        ctx.shadowBlur = 4;
-        ctx.beginPath(); ctx.arc(-r * 0.9, -r * 0.5, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.9, r * 0.5, 2, 0, Math.PI * 2); ctx.fill();
+        for (let i = 0; i < 4; i++) {
+            const px = -r * 0.55 + i * r * 0.32;
+            ctx.beginPath();
+            ctx.ellipse(px, 0, r * 0.10, r * 0.30, 0, -Math.PI * 0.45, Math.PI * 0.45);
+            ctx.stroke();
+        }
 
-        // Segmented body — head + abdomen
-        ctx.shadowBlur = 0;
-        // Abdomen (rear)
-        const abdGrad = ctx.createRadialGradient(r * 0.15, 0, 0, r * 0.15, 0, r * 0.5);
-        abdGrad.addColorStop(0, hsl);
-        abdGrad.addColorStop(1, hslDim);
-        ctx.fillStyle = abdGrad;
+        // Ribcage lines on the belly — exposed, faintly visible
+        ctx.strokeStyle = `hsla(${bodyHue}, 30%, 55%, 0.45)`;
+        ctx.lineWidth = 0.7;
+        for (let i = 0; i < 5; i++) {
+            const rx = -r * 0.45 + i * r * 0.22;
+            ctx.beginPath();
+            ctx.moveTo(rx, -r * 0.12);
+            ctx.lineTo(rx, r * 0.12);
+            ctx.stroke();
+        }
+
+        // Tier-2 wound glow on the underside — pulsing bioluminescence
+        if (tier2) {
+            const woundPulse = 0.5 + 0.5 * Math.sin(t * 3);
+            const woundColor = `hsla(${bodyHue + 30}, 90%, 55%, ${0.3 + 0.4 * woundPulse})`;
+            ctx.fillStyle = woundColor;
+            ctx.shadowColor = woundColor;
+            ctx.shadowBlur = 10 * woundPulse;
+            ctx.beginPath();
+            ctx.ellipse(r * 0.05, r * 0.20, r * 0.30, r * 0.06, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // Two forward-stabbing proboscises — vibrating, tip points at player.
+        const probVib = Math.sin(t * 28) * r * 0.04;
+        ctx.strokeStyle = fleshHigh;
+        ctx.lineWidth = 1.5;
+        for (const offY of [-r * 0.10, r * 0.10]) {
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.55, offY);
+            ctx.quadraticCurveTo(-r * 0.85, offY * 1.6, -r * 1.05 + probVib, offY * 0.4);
+            ctx.stroke();
+            // Sharp tip dot
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.arc(-r * 1.05 + probVib, offY * 0.4, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Biting mouth at the front — opens/closes, reveals teeth
+        const mouthOpen = 0.5 + 0.5 * Math.sin(t * 8);
+        const mouthW = r * 0.16;
+        const mouthH = r * 0.05 + r * 0.10 * mouthOpen;
+        // Maw
+        ctx.fillStyle = '#100';
         ctx.beginPath();
-        ctx.ellipse(r * 0.15, 0, r * 0.5, r * 0.35, 0, 0, Math.PI * 2);
+        ctx.ellipse(-r * 0.55, 0, mouthW, mouthH, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Shell pattern
-        ctx.strokeStyle = `hsla(${this.hue}, 60%, 40%, 0.5)`;
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.ellipse(r * 0.25, 0, r * 0.2, r * 0.15, 0.2, 0, Math.PI * 2);
-        ctx.stroke();
+        // Teeth — small triangles top + bottom along the maw
+        if (mouthOpen > 0.25) {
+            ctx.fillStyle = '#ddd';
+            const teethN = 5;
+            for (let i = 0; i < teethN; i++) {
+                const tx = -r * 0.55 - mouthW + (i + 0.5) * (mouthW * 2 / teethN);
+                ctx.beginPath();
+                ctx.moveTo(tx, -mouthH);
+                ctx.lineTo(tx + mouthW * 0.10, -mouthH + r * 0.04);
+                ctx.lineTo(tx - mouthW * 0.10, -mouthH + r * 0.04);
+                ctx.closePath(); ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(tx, mouthH);
+                ctx.lineTo(tx + mouthW * 0.10, mouthH - r * 0.04);
+                ctx.lineTo(tx - mouthW * 0.10, mouthH - r * 0.04);
+                ctx.closePath(); ctx.fill();
+            }
+        }
 
-        // Head (front)
-        const headGrad = ctx.createRadialGradient(-r * 0.3, 0, 0, -r * 0.3, 0, r * 0.35);
-        headGrad.addColorStop(0, hslBright);
-        headGrad.addColorStop(1, hslDim);
-        ctx.fillStyle = headGrad;
-        ctx.beginPath();
-        ctx.ellipse(-r * 0.3, 0, r * 0.35, r * 0.28, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Eyes — beady, glowing
-        const eyePulse = 0.7 + 0.3 * Math.sin(t * 5);
-        ctx.fillStyle = '#ffee00';
-        ctx.shadowColor = '#ffee00';
-        ctx.shadowBlur = 5 * eyePulse;
-        ctx.beginPath(); ctx.arc(-r * 0.45, -r * 0.12, r * 0.07, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.45, r * 0.12, r * 0.07, 0, Math.PI * 2); ctx.fill();
-        // Pupils
-        ctx.fillStyle = '#220000';
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(-r * 0.47, -r * 0.12, r * 0.03, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.47, r * 0.12, r * 0.03, 0, Math.PI * 2); ctx.fill();
+        // Tiny lateral eyes — pinprick yellow, no glow (creepy beady)
+        ctx.fillStyle = '#ffaa00';
+        ctx.beginPath(); ctx.arc(-r * 0.40, -r * 0.18, r * 0.04, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-r * 0.40,  r * 0.18, r * 0.04, 0, Math.PI * 2); ctx.fill();
 
         // Health bar (if damaged)
         if (this.hp < this.maxHp) {
@@ -392,64 +440,97 @@ class Drone extends Enemy {
         this.y = this.baseY + Math.sin(this.time * this.wavyFreq) * this.wavyAmp;
     }
 
+    // Disembodied drifting eyeball — sclera/iris/pupil with rotating iridescent
+    // hue, dilating pupil, ruptured blood vessels, and squirming optic-nerve
+    // tendrils. wingPhase repurposed as a per-instance hue offset.
     draw(ctx) {
         if (!this.active) return;
         const r = this.radius;
         const t = this.pulseTime;
-        const pulse = 0.5 + 0.5 * Math.sin(t * 6);
-        const hsl = `hsl(${this.hue}, 100%, ${55 + 20 * pulse}%)`;
-        const hslDim = `hsl(${this.hue}, 60%, 20%)`;
+        // Iris hue rotates over time for the unnerving iridescent look.
+        const irisHue = (this.wingPhase * 60 + t * 30) % 360;
+        const irisColor = `hsl(${irisHue}, 80%, 45%)`;
+        const irisRim   = `hsl(${irisHue}, 90%, 30%)`;
+        const veinAlpha = 0.3 + 0.4 * (0.5 + 0.5 * Math.sin(t * 4));
 
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Bioluminescent glow aura
-        ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${0.15 * pulse})`;
-        ctx.shadowColor = hsl;
-        ctx.shadowBlur = 12 * pulse;
+        // Faint outer aura — barely visible, just enough to hint motion.
+        ctx.fillStyle = `hsla(${irisHue}, 70%, 45%, 0.10)`;
+        ctx.shadowColor = irisColor;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
+        ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2);
         ctx.fill();
-
-        // Wings — rapid flutter
-        const wingAngle = Math.sin(t * 25 + this.wingPhase) * 0.6;
-        ctx.fillStyle = `hsla(${this.hue}, 80%, 50%, 0.3)`;
-        ctx.shadowBlur = 3;
-        // Upper wing
-        ctx.save();
-        ctx.rotate(-wingAngle);
-        ctx.beginPath();
-        ctx.ellipse(r * 0.1, -r * 0.3, r * 0.8, r * 0.25, -0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        // Lower wing
-        ctx.save();
-        ctx.rotate(wingAngle);
-        ctx.beginPath();
-        ctx.ellipse(r * 0.1, r * 0.3, r * 0.8, r * 0.25, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Body — small oval
-        ctx.fillStyle = hslDim;
         ctx.shadowBlur = 0;
+
+        // Optic nerve — 4 short squirming tendrils trailing behind (right side).
+        ctx.strokeStyle = `hsla(0, 50%, 30%, 0.7)`;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 4; i++) {
+            const offset = (i - 1.5) * r * 0.18;
+            const wiggle = Math.sin(t * 5 + i * 1.3) * r * 0.20;
+            ctx.beginPath();
+            ctx.moveTo(r * 0.6, offset);
+            ctx.quadraticCurveTo(
+                r * 0.95, offset + wiggle,
+                r * 1.25, offset + wiggle * 0.4
+            );
+            ctx.stroke();
+        }
+
+        // Sclera (white of the eye) — slightly off-white for unhealthy look.
+        ctx.fillStyle = '#e8e0d8';
         ctx.beginPath();
-        ctx.ellipse(0, 0, r * 0.5, r * 0.25, 0, 0, Math.PI * 2);
+        ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
         ctx.fill();
 
-        // Glowing abdomen
-        ctx.fillStyle = hsl;
-        ctx.shadowColor = hsl;
-        ctx.shadowBlur = 8 * pulse;
+        // Blood vessels — thin red lines radiating outward, pulsing alpha.
+        ctx.strokeStyle = `rgba(180, 0, 0, ${veinAlpha})`;
+        ctx.lineWidth = 0.8;
+        const veinSeed = this.wingPhase;
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + veinSeed;
+            const startR = r * 0.20;
+            const endR = r * 0.62;
+            const mid = (startR + endR) * 0.5;
+            const branch = Math.sin(angle * 3 + veinSeed) * r * 0.06;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(angle) * startR, Math.sin(angle) * startR);
+            ctx.quadraticCurveTo(
+                Math.cos(angle) * mid + branch, Math.sin(angle) * mid + branch,
+                Math.cos(angle) * endR, Math.sin(angle) * endR
+            );
+            ctx.stroke();
+        }
+
+        // Iris — radial gradient sclera-edge → colored iris → darker rim
+        const irisGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.42);
+        irisGrad.addColorStop(0, irisColor);
+        irisGrad.addColorStop(0.7, irisRim);
+        irisGrad.addColorStop(1, '#101010');
+        ctx.fillStyle = irisGrad;
+        ctx.shadowColor = irisColor;
+        ctx.shadowBlur = 6;
         ctx.beginPath();
-        ctx.arc(r * 0.2, 0, r * 0.2, 0, Math.PI * 2);
+        ctx.arc(0, 0, r * 0.40, 0, Math.PI * 2);
         ctx.fill();
 
-        // Eyes — tiny dots
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowBlur = 2;
-        ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.08, 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(-r * 0.3, r * 0.08, 1.5, 0, Math.PI * 2); ctx.fill();
+        // Pupil — black, dilates and contracts on its own breathing rhythm.
+        ctx.shadowBlur = 0;
+        const pupilR = r * (0.18 + 0.08 * Math.sin(t * 3));
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(0, 0, pupilR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Catch-light specular — a tiny offset white dot that makes the eye look wet
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.arc(-r * 0.12, -r * 0.12, r * 0.05, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }
