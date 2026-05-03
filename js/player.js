@@ -187,21 +187,32 @@ class Player {
         }
     }
 
+    // ============================================================
+    // CANONICAL stat calculator — single source of truth for upgrade math.
+    // Every ShopItem.apply lambda in shop.js delegates here; do not
+    // duplicate these formulas anywhere else, or shop and gameplay will
+    // silently drift out of sync.
+    // ============================================================
     applyUpgrades() {
-        // Apply upgrade levels to base stats
-        const dmgLevel = this.upgrades ? this.upgrades.damage : 0;
-        const frLevel  = this.upgrades ? this.upgrades.fireRate : 0;
-        const spdLevel = this.upgrades ? this.upgrades.speed : 0;
-        const bmbLevel = this.upgrades ? this.upgrades.bombs : 0;
-        this.baseDamage = 1 + dmgLevel * 0.5;
-        this.baseFireRate = 0.18 - frLevel * 0.015;
-        this.fireRate = this.baseFireRate;
-        this.speed = 420 + spdLevel * 30;
-        this.maxBombs = 2 + bmbLevel;
-        const shdLevel = this.upgrades ? this.upgrades.shields : 0;
-        const livLevel = this.upgrades ? this.upgrades.lives : 0;
+        const u = this.upgrades || {};
+        const dmgLevel = u.damage   || 0;
+        const frLevel  = u.fireRate || 0;
+        const spdLevel = u.speed    || 0;
+        const bmbLevel = u.bombs    || 0;
+        const shdLevel = u.shields  || 0;
+        const livLevel = u.lives    || 0;
+
+        this.baseDamage       = 1 + dmgLevel * 0.5;
+        this.baseFireRate     = 0.18 - frLevel * 0.015;
+        this.fireRate         = this.baseFireRate;
+        this.speed            = 420 + spdLevel * 30;
+        this.maxBombs         = 2 + bmbLevel;
         this.maxShieldCharges = 3 + shdLevel;
-        this.maxLives = 8 + livLevel;
+        this.maxLives         = 8 + livLevel;
+
+        // Refill shields on every recompute — buying any upgrade tops
+        // them up, matching the original shop lambda's behavior.
+        this.shieldCharges    = this.maxShieldCharges;
     }
 
     addScrap(amount) {

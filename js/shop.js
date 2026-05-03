@@ -18,19 +18,17 @@ class ShopItem {
     }
 }
 
+// Stat formulas live in player.applyUpgrades() — the single source of truth.
+// Every apply lambda here just delegates so the shop and reset() stay in sync.
+const APPLY = (p) => p.applyUpgrades();
+
 const SHOP_ITEMS = [
-    new ShopItem('damage', 'DAMAGE', '+0.5 bullet damage', 50, 5,
-        (p) => { p.baseDamage = 1 + p.upgrades.damage * 0.5; }),
-    new ShopItem('fireRate', 'FIRE RATE', 'faster shooting', 50, 5,
-        (p) => { p.baseFireRate = 0.18 - p.upgrades.fireRate * 0.015; p.fireRate = p.baseFireRate; }),
-    new ShopItem('speed', 'SPEED', '+30 ship speed', 40, 5,
-        (p) => { p.speed = 420 + p.upgrades.speed * 30; }),
-    new ShopItem('bombs', 'BOMBS', '+1 max bomb', 60, 5,
-        (p) => { p.maxBombs = 2 + p.upgrades.bombs; }),
-    new ShopItem('shields', 'SHIELDS', '+1 shield charge', 45, 4,
-        (p) => { p.maxShieldCharges = 3 + (p.upgrades.shields || 0); p.shieldCharges = p.maxShieldCharges; }),
-    new ShopItem('lives', 'MAX LIVES', '+1 max life', 80, 4,
-        (p) => { p.maxLives = 8 + (p.upgrades.lives || 0); }),
+    new ShopItem('damage',   'DAMAGE',    '+0.5 bullet damage', 50, 5, APPLY),
+    new ShopItem('fireRate', 'FIRE RATE', 'faster shooting',    50, 5, APPLY),
+    new ShopItem('speed',    'SPEED',     '+30 ship speed',     40, 5, APPLY),
+    new ShopItem('bombs',    'BOMBS',     '+1 max bomb',        60, 5, APPLY),
+    new ShopItem('shields',  'SHIELDS',   '+1 shield charge',   45, 4, APPLY),
+    new ShopItem('lives',    'MAX LIVES', '+1 max life',        80, 4, APPLY),
 ];
 
 class Shop {
