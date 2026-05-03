@@ -567,14 +567,31 @@ class UIRenderer {
         ctx.shadowBlur = 20;
         ctx.fillText('GAME OVER', w / 2, h * 0.35);
 
+        // Animated score reveal — scale popped in by anim.gameOverReveal()
         ctx.shadowBlur = 0;
-        ctx.font = 'bold 26px Courier New';
+        const go = g.anim.gameOver;
+        const scoreScale = Math.max(0.001, go.scoreScale);
+        const scoreSize = 26 * scoreScale;
+        ctx.font = `bold ${scoreSize}px Courier New`;
         ctx.fillStyle = '#d4d4d4';
-        ctx.fillText(`SCORE: ${g.score}`, w / 2, h * 0.48);
+        ctx.fillText(`SCORE: ${g.score.toLocaleString()}`, w / 2, h * 0.48);
 
         ctx.font = '16px Courier New';
         ctx.fillStyle = '#666';
-        ctx.fillText(`HIGH SCORE: ${g.highScore}`, w / 2, h * 0.56);
+        ctx.fillText(`HIGH SCORE: ${g.highScore.toLocaleString()}`, w / 2, h * 0.56);
+
+        // NEW BEST badge — fades in with scale-pop after the score lands.
+        if (go.isNewBest && go.pbAlpha > 0) {
+            ctx.save();
+            ctx.globalAlpha = go.pbAlpha;
+            const pbScale = Math.max(0.001, go.pbScale);
+            ctx.font = `bold ${18 * pbScale}px Courier New`;
+            ctx.fillStyle = '#ffdd00';
+            ctx.shadowColor = '#ffdd00';
+            ctx.shadowBlur = 12;
+            ctx.fillText(`★ NEW BEST  +${go.pbDelta.toLocaleString()}`, w / 2, h * 0.51);
+            ctx.restore();
+        }
 
         // Stats
         ctx.font = '14px Courier New';

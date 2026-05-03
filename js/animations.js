@@ -32,6 +32,17 @@ class Anim {
         this.menuTimelines  = [];
         this.vignette       = { intensity: 0 };
         this._vignettePulse = null;
+
+        // Game-over reveal state (set by gameOverReveal, read by ui.drawGameOver).
+        this.gameOver = {
+            alpha: 0,
+            scoreScale: 0.5,
+            pbScale: 0.5,
+            pbAlpha: 0,
+            pbDelta: 0,
+            isNewBest: false,
+            score: 0,
+        };
     }
 
     // Once per frame from Game.update(). gameTime is monotonic seconds.
@@ -202,6 +213,29 @@ class Anim {
             this.menuTimelines = this.menuTimelines.filter(t => t !== tl);
         });
         return tl;
+    }
+
+    // Game-over reveal — fades in the panel, pops the score with overshoot,
+    // and (if a new personal best) animates a gold "NEW BEST" badge below.
+    gameOverReveal({ score, pbDelta = 0, isNewBest = false } = {}) {
+        Object.assign(this.gameOver, {
+            score,
+            pbDelta,
+            isNewBest,
+            alpha: 0,
+            scoreScale: 0.5,
+            pbAlpha: 0,
+            pbScale: 0.5,
+        });
+        const tl = gsap.timeline();
+        tl.to(this.gameOver, { alpha: 1, duration: 0.4, ease: 'power2.out' });
+        tl.to(this.gameOver, { scoreScale: 1.0, duration: 0.5, ease: 'back.out(1.8)' }, '-=0.1');
+        if (isNewBest && pbDelta > 0) {
+            tl.to(this.gameOver, { pbAlpha: 1, pbScale: 1.0,
+                duration: 0.4, ease: 'back.out(2.0)' }, '+=0.2');
+            tl.call(() => this.screenFlash({ color: '#ffdd00', intensity: 0.4, duration: 0.3 }), null, '-=0.3');
+        }
+        return this._track(tl);
     }
 
     // Low-HP vignette — pulsing red edge gradient. Idempotent start; safe to

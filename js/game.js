@@ -119,6 +119,42 @@ class Game {
         // Start menu idle loops (state begins as MENU)
         this.anim.startMenuLoops();
 
+        // Wire game-side handlers for events emitted from Player / others.
+        // Keeps player.js free of direct particles/shake/audio dependencies.
+        emitter.on('shot:fired', ({ x, y, color }) => {
+            this.particles.createMuzzleFlash(x, y, 0, color || '#00ffff');
+        });
+        emitter.on('bomb:empty', () => this.audio.playSmallExplosion());
+        emitter.on('bomb:requested', ({ x, y }) => {
+            let kills = 0;
+            for (const e of this.spawner.enemies) {
+                if (!e.active) continue;
+                if (e.type === 'boss') {
+                    e.takeDamage(Math.ceil(e.maxHp * 0.25));
+                    this.particles.createColorExplosion(e.x, e.y,
+                        ['#ffffff', '#ffdd00'], 20, 200, 0.5, 4);
+                } else {
+                    e.active = false;
+                    kills++;
+                    this.particles.createColorExplosion(e.x, e.y,
+                        ['#ffffff', '#ffdd00', '#ff8800'], 15, 200, 0.4, 3);
+                }
+            }
+            this.particles.createColorExplosion(x, y,
+                ['#ffffff', '#ffddaa', '#ffaa44'], 60, 400, 1.0, 6);
+            this.audio.playExplosion();
+            if (kills > 0) {
+                this.score += kills * 5;
+                this.bombFlashTimer = 0.3;
+                this.shake.shake(15, 0.5);
+            }
+        });
+        emitter.on('wingman:expired', ({ x, y }) => {
+            this.particles.createColorExplosion(x, y,
+                ['#cc0000', '#ff4400', '#ff8800', '#ffffff'], 20, 240, 0.6, 4);
+            this.shake.shake(4, 0.1);
+        });
+
         // Auto-pause on tab switch — only auto-resume if WE paused (so we don't
         // un-pause a manual P/Esc pause when the user comes back).
         this._autoPaused = false;
@@ -202,10 +238,16 @@ class Game {
         this.anim.killAll();
         this.anim.stopVignette();
         this.state = STATE.GAME_OVER;
-        if (this.score > this.highScore) {
+        // Capture PB delta BEFORE mutating highScore so the reveal animation
+        // can show "+N above your best" with the correct old-best comparison.
+        const prevBest = this.highScore;
+        const isNewBest = this.score > prevBest;
+        const pbDelta = isNewBest ? this.score - prevBest : 0;
+        if (isNewBest) {
             this.highScore = this.score;
             localStorage.setItem('ninDefenderHigh', this.highScore.toString());
         }
+        this.anim.gameOverReveal({ score: this.score, pbDelta, isNewBest });
         // Save scrap earned and update leaderboard
         this.player.addScrap(0); // ensure saved
         this.addToLeaderboard(this.score);
@@ -434,18 +476,13 @@ class Game {
                 ['#ff2200', '#ffaa00', '#ffffff'], 18, 200, 0.5, 4);
             this.shake.shake(2, 0.1);
         }
-        // Wingman disintegration burst — fired the frame the wingman expires.
-        if (this.player._wingmanExpired) {
-            const w = this.player._wingmanExpired;
-            this.particles.createColorExplosion(w.x, w.y,
-                ['#cc0000', '#ff4400', '#ff8800', '#ffffff'], 20, 240, 0.6, 4);
-            this.shake.shake(4, 0.1);
-        }
+        // Wingman disintegration burst — handled by the 'wingman:expired'
+        // subscriber bound in the constructor (no per-frame polling needed).
         this.player.drawTrail(this.particles);
 
         // Auto-fire if key held or touch — apply micro shake + recoil per shot.
         if ((this.keys['Space'] || this.touchFiring) && this.state === STATE.PLAYING) {
-            const shot = this.player.shoot(this.projectiles, this.particles, this.audio);
+            const shot = this.player.shoot(this.projectiles);
             if (shot && !this.player.invincible) {
                 if (shot.tripleShot) {
                     this.shake.shake(2, 0.07);
@@ -512,14 +549,10 @@ class Game {
             this.keys['KeyE'] = false;
         }
 
-        // Activate bomb on Q key
+        // Activate bomb on Q key — score + flash + shake all happen in the
+        // 'bomb:requested' subscriber bound in the constructor.
         if (this.keys['KeyQ'] && this.state === STATE.PLAYING) {
-            const kills = this.player.activateBomb(this.audio, this.particles, this.spawner.enemies);
-            if (kills > 0) {
-                this.score += kills * 5;
-                this.bombFlashTimer = 0.3;
-                this.shake.shake(15, 0.5);
-            }
+            this.player.activateBomb();
             this.keys['KeyQ'] = false;
         }
         if (this.bombFlashTimer > 0) this.bombFlashTimer -= dt;

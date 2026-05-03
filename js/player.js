@@ -421,39 +421,17 @@ class Player {
         ctx.shadowBlur = 0;
     }
 
-    activateBomb(audio, particles, enemies) {
+    // Emits 'bomb:requested' (or 'bomb:empty' if dry). Game.js handles the
+    // actual enemy iteration + particles + audio — Player just owns charge state.
+    activateBomb() {
         if (this.bombs <= 0 || this.bombCooldown > 0 || !this.alive) {
-            if (this.bombs <= 0 && audio) audio.playSmallExplosion();
+            if (this.bombs <= 0) emitter.emit('bomb:empty', {});
             return false;
         }
         this.bombs--;
         this.bombCooldown = 1.0;
-        // Kill all non-boss enemies; damage bosses for 25% HP
-        let kills = 0;
-        for (const e of enemies) {
-            if (!e.active) continue;
-            if (e.type === 'boss') {
-                e.takeDamage(Math.ceil(e.maxHp * 0.25));
-                if (particles) {
-                    particles.createColorExplosion(e.x, e.y,
-                        ['#ffffff', '#ffdd00'], 20, 200, 0.5, 4);
-                }
-            } else {
-                e.active = false;
-                kills++;
-                if (particles) {
-                    particles.createColorExplosion(e.x, e.y,
-                        ['#ffffff', '#ffdd00', '#ff8800'], 15, 200, 0.4, 3);
-                }
-            }
-        }
-        // Big screen flash effect
-        if (particles) {
-            particles.createColorExplosion(this.x, this.y,
-                ['#ffffff', '#ffddaa', '#ffaa44'], 60, 400, 1.0, 6);
-        }
-        if (audio) audio.playExplosion();
-        return kills;
+        emitter.emit('bomb:requested', { x: this.x, y: this.y });
+        return true;
     }
 
     registerKill() {
@@ -590,13 +568,11 @@ class Player {
         }
 
         // Wingman timer + follow
-        // Reset the per-frame expiry signal that game.js polls for the burst FX.
-        this._wingmanExpired = null;
         if (this.wingman) {
             this.wingmanTimer -= dt;
             if (this.wingmanTimer <= 0) {
-                // Hand off the burst position to game.js BEFORE clearing state.
-                this._wingmanExpired = { x: this.wingmanX, y: this.wingmanY };
+                // Emit so game.js fires the burst FX without us referencing particles/shake.
+                emitter.emit('wingman:expired', { x: this.wingmanX, y: this.wingmanY });
                 this.wingman = false;
             } else {
                 // Follow player with lag
@@ -664,9 +640,9 @@ class Player {
     }
 
     // Returns {tripleShot, rapidFire} when a shot fires, or null when on cooldown / dead /
-    // when the laser beam is the active weapon (laser handles its own per-frame damage).
-    // Caller uses the result to apply mode-appropriate screen-shake + recoil.
-    shoot(projectilePool, particles, audio) {
+    // when the laser beam is the active weapon. Emits 'shot:fired' for muzzle FX
+    // — Player no longer reaches into particles/audio directly.
+    shoot(projectilePool) {
         if (this.shootCooldown > 0 || !this.alive || this.laserBeam) return null;
         this.shootCooldown = this.fireRate;
 
@@ -744,7 +720,7 @@ class Player {
             }
         }
 
-        particles.createMuzzleFlash(tipX + 5, tipY, 0, bulletColor);
+        emitter.emit('shot:fired', { x: tipX + 5, y: tipY, color: bulletColor });
         return { tripleShot: this.tripleShot, rapidFire: this.rapidFire };
     }
 
