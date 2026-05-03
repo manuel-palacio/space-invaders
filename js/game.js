@@ -8,6 +8,7 @@ const STATE = {
     PAUSED:     'PAUSED',
     SHOP:       'SHOP',
     WAVE_CLEAR: 'WAVE_CLEAR',
+    DYING:      'DYING',
     GAME_OVER:  'GAME_OVER'
 };
 
@@ -88,6 +89,9 @@ class Game {
 
         // Laser Beam render geometry — null when no beam is firing
         this._laserBeam = null;
+
+        // Death slow-mo sequence — counts down real-time before transitioning to GAME_OVER
+        this._dyingTimer = 0;
 
         // Pause menu
         this._pauseMenuIndex = 0;
@@ -280,6 +284,10 @@ class Game {
                 this.startGame();
             } else if (this.state === STATE.GAME_OVER) {
                 this.startGame();
+            } else if (this.state === STATE.DYING) {
+                // Skip the slow-mo death sequence — go straight to game over.
+                this._dyingTimer = 0;
+                this.gameOver();
             }
         }
     }
@@ -353,6 +361,22 @@ class Game {
         if (this.state === STATE.GAME_OVER) {
             this.background.update(dt);
             this.particles.update(dt);
+            return;
+        }
+
+        if (this.state === STATE.DYING) {
+            // Sequence ticks on real time; world updates use a heavy slow-mo dt.
+            this._dyingTimer -= dt;
+            const slowDt = dt * 0.15;
+            this.shake.update(dt);
+            this.background.update(slowDt);
+            this.particles.update(slowDt);
+            this.projectiles.update(slowDt, this.canvas.width, this.canvas.height);
+            this.spawner.update(slowDt, this.score, this.canvas.width, this.canvas.height,
+                this.projectiles, this.player.y, this.audio, this.player.x);
+            if (this._dyingTimer <= 0) {
+                this.gameOver();
+            }
             return;
         }
 
@@ -850,10 +874,25 @@ class Game {
         }
         const dead = this.player.hit();
         if (dead) {
+            // Re-entry guard: if the dying sequence already started, don't restart it.
+            if (this.state === STATE.DYING) return;
+            this.state = STATE.DYING;
+            this._dyingTimer = 1.5;
+
+            // Initial fragmenting explosion
             this.particles.createColorExplosion(this.player.x, this.player.y,
                 ['#00ffff', '#ffffff', '#0088ff', '#ff3366'], 50, 300, 0.8, 5);
-            this.shake.shake(12, 0.4);
-            this.gameOver();
+            // 8 spinning debris bursts in a ring around the ship
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                this.particles.createColorExplosion(
+                    this.player.x + Math.cos(angle) * 10,
+                    this.player.y + Math.sin(angle) * 10,
+                    ['#cccccc', '#888888', '#444444'], 4, 200, 1.5, 3);
+            }
+            this.shake.shake(20, 1.5);
+            // Cut music for dramatic silence
+            if (this.music) this.music.stop();
         } else {
             this.shake.shake(8, 0.2);
             this.audio.playHit();
@@ -868,14 +907,14 @@ class Game {
         ctx.save();
 
         // Apply screen shake
-        if (this.state === STATE.PLAYING || this.state === STATE.GAME_OVER) {
+        if (this.state === STATE.PLAYING || this.state === STATE.GAME_OVER || this.state === STATE.DYING) {
             ctx.translate(this.shake.offsetX, this.shake.offsetY);
         }
 
         // Background
         this.background.draw(ctx);
 
-        if (this.state === STATE.PLAYING || this.state === STATE.PAUSED || this.state === STATE.WAVE_CLEAR) {
+        if (this.state === STATE.PLAYING || this.state === STATE.PAUSED || this.state === STATE.WAVE_CLEAR || this.state === STATE.DYING) {
             // Environmental hazards (behind gameplay)
             this.asteroidBelt.draw(ctx);
             this.blackHole.draw(ctx);
@@ -925,6 +964,14 @@ class Game {
         if (this.state === STATE.GAME_OVER) {
             this.spawner.draw(ctx);
             this.particles.draw(ctx);
+        }
+
+        // DYING red fade overlay — alpha grows from 0 → ~0.6 over 1.5s.
+        // Drawn inside the shake transform so the bleed shakes with the camera.
+        if (this.state === STATE.DYING) {
+            const progress = 1 - Math.max(0, this._dyingTimer / 1.5);
+            ctx.fillStyle = `rgba(180, 0, 0, ${progress * 0.6})`;
+            ctx.fillRect(-50, -50, this.canvas.width + 100, this.canvas.height + 100);
         }
 
         ctx.restore();
