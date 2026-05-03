@@ -91,15 +91,11 @@ class Player {
         this.maxBombs = 3;
         this.bombCooldown = 0;
 
-        // Scrap & weapon upgrades (persistent via localStorage)
-        this.scrap = parseInt(localStorage.getItem('ninDefenderScrap') || '0', 10);
-        this.upgrades = JSON.parse(localStorage.getItem('ninDefenderUpgrades') || '{}');
-        this.upgrades.damage   = this.upgrades.damage   || 0;
-        this.upgrades.fireRate = this.upgrades.fireRate || 0;
-        this.upgrades.speed    = this.upgrades.speed    || 0;
-        this.upgrades.bombs    = this.upgrades.bombs    || 0;
-        this.upgrades.shields  = this.upgrades.shields  || 0;
-        this.upgrades.lives    = this.upgrades.lives    || 0;
+        // Scrap & weapon upgrades (persistent via localStorage). Schemas
+        // applies per-key defaults, so .damage, .fireRate, etc. are always
+        // present and within range — no need to re-default each one here.
+        this.scrap = Schemas.loadScrap();
+        this.upgrades = Schemas.loadUpgrades();
         this.applyUpgrades();
 
         // Trail customization
@@ -113,12 +109,12 @@ class Player {
             'MAGENTA', 'COBALT', 'GHOST WHITE',
             'NEON PINK', 'BLOOD RED', 'SOLAR GOLD', 'ICE BLUE'
         ];
-        this.trailIndex = parseInt(localStorage.getItem('ninDefenderTrail') || '0', 10);
+        this.trailIndex = Schemas.loadTrail();
         this.trailColor = this.trailColors[this.trailIndex];
 
         // Ship skins
         this.skinNames = ['CLASSIC', 'STEALTH', 'VIPER', 'TANK'];
-        this.skinIndex = parseInt(localStorage.getItem('ninDefenderSkin') || '0', 10);
+        this.skinIndex = Schemas.loadSkin();
 
         // Combo system (tracked here for score integration)
         this.combo = 0;

@@ -48,7 +48,7 @@ class Game {
         this.bossSpawnedForPhase = -1;
 
         // Leaderboard
-        this.leaderboard = JSON.parse(localStorage.getItem('ninDefenderLeaderboard') || '[]');
+        this.leaderboard = Schemas.loadLeaderboard();
 
         // Bomb flash
         this.bombFlashTimer = 0;
@@ -56,7 +56,7 @@ class Game {
         // State
         this.state = STATE.MENU;
         this.score = 0;
-        this.highScore = parseInt(localStorage.getItem('ninDefenderHigh') || '0', 10);
+        this.highScore = Schemas.loadHighScore();
         this.time = 0;
         this.powerupTimer = 0;
 
@@ -106,7 +106,7 @@ class Game {
 
         // Difficulty
         this.difficulties = ['EASY', 'NORMAL', 'BRUTAL'];
-        this.difficultyIndex = parseInt(localStorage.getItem('ninDefenderDifficulty') || '1', 10);
+        this.difficultyIndex = Schemas.loadDifficulty();
         this.difficultySettings = {
             EASY:   { lives: 8, baseInterval: 2.8, bulletSpeedMul: 0.5 },
             NORMAL: { lives: 6, baseInterval: 2.2, bulletSpeedMul: 1.0 },
