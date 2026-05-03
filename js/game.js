@@ -93,6 +93,10 @@ class Game {
         // Death slow-mo sequence — counts down real-time before transitioning to GAME_OVER
         this._dyingTimer = 0;
 
+        // Boss preview panel — shown during the first ~2s of a phase transition
+        // when a boss is incoming. Cleared on game restart / gameOver.
+        this._bossPreview = null;
+
         // Pause menu
         this._pauseMenuIndex = 0;
 
@@ -145,6 +149,7 @@ class Game {
         // Boss & hazards
         this.bossActive = false;
         this.bossSpawnedForPhase = -1;
+        this._bossPreview = null;
         this.hazardTimer = Utils.random(60, 90);
         this.solarFlare = new SolarFlare();
         this.blackHole = new BlackHole();
@@ -530,12 +535,27 @@ class Game {
                 boss.canvas_w = this.canvas.width;
                 this.spawner.enemies.push(boss);
                 this.bossActive = true;
+                // Set up the boss preview panel — runs for ~2s, fades over the last 0.4s.
+                this._bossPreview = {
+                    timer: 2.0,
+                    duration: 2.0,
+                    name: BOSS_NAMES[boss.bossType] || `BOSS T${boss.bossType + 1}`,
+                    tier: boss.bossType + 1,
+                    maxHp: boss.maxHp,
+                    color: boss.color,
+                };
             }
         }
         // Check if boss is still alive
         if (this.bossActive) {
             const bossAlive = this.spawner.enemies.some(e => e.type === 'boss' && e.active);
             if (!bossAlive) this.bossActive = false;
+        }
+
+        // Boss preview panel countdown (real time — independent of Time Warp)
+        if (this._bossPreview) {
+            this._bossPreview.timer -= dt;
+            if (this._bossPreview.timer <= 0) this._bossPreview = null;
         }
 
         // Environmental hazards — less frequent in easy phases, more frequent later

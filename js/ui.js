@@ -165,8 +165,62 @@ class UIRenderer {
             puY += 18;
         }
 
+        // Boss preview panel — replaces the phase announcement during the
+        // first ~2 seconds of a transition when a boss is incoming. Fades
+        // out over the last 0.4s so it transitions cleanly to the phase name.
+        if (g._bossPreview) {
+            const bp = g._bossPreview;
+            const fade = Math.min(1, bp.timer / 0.4);
+            ctx.save();
+            ctx.globalAlpha = fade;
+            ctx.textAlign = 'center';
+
+            // Subtle dark panel behind the text (not full-screen)
+            const panelW = Math.min(w * 0.45, 380);
+            const panelH = 90;
+            const panelX = (w - panelW) / 2;
+            const panelY = h * 0.12;
+            ctx.fillStyle = 'rgba(8, 4, 4, 0.78)';
+            ctx.fillRect(panelX, panelY, panelW, panelH);
+            ctx.strokeStyle = bp.color;
+            ctx.shadowColor = bp.color;
+            ctx.shadowBlur = 12;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+            // Header line
+            ctx.shadowBlur = 6;
+            ctx.font = `bold 13px Courier New`;
+            ctx.fillStyle = '#cccccc';
+            ctx.fillText(`INCOMING — TIER ${bp.tier}`, w / 2, panelY + 20);
+
+            // Boss name
+            ctx.font = `bold 22px Courier New`;
+            ctx.fillStyle = bp.color;
+            ctx.fillText(bp.name, w / 2, panelY + 48);
+
+            // Full HP bar preview
+            ctx.shadowBlur = 0;
+            const barW = panelW * 0.7;
+            const barH = 8;
+            const barX = (w - barW) / 2;
+            const barY = panelY + 64;
+            ctx.fillStyle = '#222';
+            ctx.fillRect(barX, barY, barW, barH);
+            ctx.fillStyle = bp.color;
+            ctx.shadowColor = bp.color;
+            ctx.shadowBlur = 8;
+            ctx.fillRect(barX, barY, barW, barH); // full
+            ctx.shadowBlur = 0;
+            ctx.font = '11px Courier New';
+            ctx.fillStyle = '#888';
+            ctx.fillText(`${bp.maxHp} HP`, w / 2, barY + 22);
+
+            ctx.restore();
+        }
+
         // Phase announcement — center screen, fading (driven by GSAP via Anim)
-        if (g.anim.phaseBanner.visible) {
+        if (g.anim.phaseBanner.visible && !g._bossPreview) {
             const pb = g.anim.phaseBanner;
             ctx.save();
             ctx.globalAlpha = pb.alpha;

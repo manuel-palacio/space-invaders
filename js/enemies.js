@@ -1426,6 +1426,20 @@ class AlienDevil extends Enemy {
 // ============================================================
 // Boss — Large, multi-phase boss with cycling attack patterns
 // ============================================================
+// Themed names per bossType (0-9), used by HUD preview at phase transition.
+const BOSS_NAMES = [
+    'BRONZE COLOSSUS',
+    'CRIMSON SCOUT',
+    'VIRAL SWARM',
+    'CRIMSON MAW',
+    'SPIDER QUEEN',
+    'PHANTOM WAILER',
+    'VOID BOMBER',
+    'STEALTH WRAITH',
+    'INFERNO LORD',
+    'CHAOS HARBINGER',
+];
+
 class Boss extends Enemy {
     constructor(canvasW, canvasH, bossType = 0, assets = {}) {
         super();
