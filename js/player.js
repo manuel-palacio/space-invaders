@@ -565,8 +565,10 @@ class Player {
         }
     }
 
+    // Returns {tripleShot, rapidFire} when a shot fires, or null when on cooldown / dead.
+    // Caller uses the result to apply mode-appropriate screen-shake + recoil.
     shoot(projectilePool, particles, audio) {
-        if (this.shootCooldown > 0 || !this.alive) return;
+        if (this.shootCooldown > 0 || !this.alive) return null;
         this.shootCooldown = this.fireRate;
 
         const bulletSpeed = 700;
@@ -609,6 +611,7 @@ class Player {
         }
 
         particles.createMuzzleFlash(tipX + 5, tipY, 0, '#00ffff');
+        return { tripleShot: this.tripleShot, rapidFire: this.rapidFire };
     }
 
     draw(ctx) {

@@ -362,9 +362,21 @@ class Game {
         this.player.update(dt, this.keys, this.joystick);
         this.player.drawTrail(this.particles);
 
-        // Auto-fire if key held or touch
+        // Auto-fire if key held or touch — apply micro shake + recoil per shot.
         if ((this.keys['Space'] || this.touchFiring) && this.state === STATE.PLAYING) {
-            this.player.shoot(this.projectiles, this.particles, this.audio);
+            const shot = this.player.shoot(this.projectiles, this.particles, this.audio);
+            if (shot && !this.player.invincible) {
+                if (shot.tripleShot) {
+                    this.shake.shake(2, 0.07);
+                    this.player.vx -= 45; // 3 separate nudges, applied in one frame
+                } else if (shot.rapidFire) {
+                    this.shake.shake(0.5, 0.03);
+                    this.player.vx -= 15;
+                } else {
+                    this.shake.shake(1, 0.05);
+                    this.player.vx -= 15;
+                }
+            }
         }
 
         // Wingman auto-fire
