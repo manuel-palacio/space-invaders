@@ -47,6 +47,7 @@ class Player {
         this.tripleShot = false;
         this.tripleShotTimer = 0;
         this.tripleShotPassive = false; // VIPER skin = always-on triple shot
+        this.tilt = 0; // smoothed visual bank angle (radians); used by draw + shoot
         this.rapidFire = false;
         this.rapidFireTimer = 0;
         this.shield = false;
@@ -153,6 +154,7 @@ class Player {
         this.laserBeamTimer = 0;
         this.nukeOvercharge = false;
         this.nukeOverchargeTimer = 0;
+        this.tilt = 0;
         this.fireRate = this.baseFireRate;
         this.shieldCharges = 3;
         this.activeShield = false;
@@ -545,6 +547,12 @@ class Player {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
+        // Smoothed visual bank — exponential approach to a vy-derived target.
+        // Equivalent feel to a GSAP tween but without per-frame timeline churn.
+        const targetTilt = Math.atan2(this.vy, Math.abs(this.vx) + 1) * 0.35;
+        const k = Math.min(1, 12 * dt);
+        this.tilt += (targetTilt - this.tilt) * k;
+
         // Clamp to screen
         this.x = Utils.clamp(this.x, this.width / 2, this.canvas.width - this.width / 2);
         this.y = Utils.clamp(this.y, this.height / 2, this.canvas.height - this.height / 2);
@@ -668,8 +676,8 @@ class Player {
 
         // Center shot
         const dmg = this.baseDamage || 1;
-        // Bullets follow the ship's tilt angle
-        const tilt = Math.atan2(this.vy, Math.abs(this.vx) + 1) * 0.35;
+        // Bullets follow the smoothed visual tilt — same value the ship banks at.
+        const tilt = this.tilt;
         const bvx = bulletSpeed * Math.cos(tilt);
         const bvy = bulletSpeed * Math.sin(tilt);
 
@@ -746,9 +754,8 @@ class Player {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Bank/tilt on vertical movement
-        const tilt = Math.atan2(this.vy, Math.abs(this.vx) + 1) * 0.35;
-        ctx.rotate(tilt);
+        // Bank/tilt on vertical movement (smoothed in update())
+        ctx.rotate(this.tilt);
 
         // Engine trail — scales with speed, uses trail color
         const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);

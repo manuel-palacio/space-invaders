@@ -25,10 +25,13 @@ class Anim {
 
         // Menu polish state. menuTimelines is separate from activeTimelines so
         // killAll() (cinematic cancel) does not stop the idle menu loops.
+        // The low-HP vignette is also tracked here for the same reason.
         this.menuTitle      = { scale: 1, glow: 25 };
         this.menuPrompt     = { alpha: 1 };
         this.menuDifficulty = { scale: 1 };
         this.menuTimelines  = [];
+        this.vignette       = { intensity: 0 };
+        this._vignettePulse = null;
     }
 
     // Once per frame from Game.update(). gameTime is monotonic seconds.
@@ -199,5 +202,25 @@ class Anim {
             this.menuTimelines = this.menuTimelines.filter(t => t !== tl);
         });
         return tl;
+    }
+
+    // Low-HP vignette — pulsing red edge gradient. Idempotent start; safe to
+    // call every frame while lives are critical. Uses menuTimelines so
+    // killAll() (cinematic cancel) leaves it alone.
+    startVignette() {
+        if (this._vignettePulse) return;
+        const tl = gsap.timeline({ repeat: -1, yoyo: true });
+        tl.to(this.vignette, { intensity: 0.75, duration: 0.65, ease: 'sine.inOut' });
+        this._vignettePulse = tl;
+        this.menuTimelines.push(tl);
+    }
+
+    stopVignette() {
+        if (this._vignettePulse) {
+            this.menuTimelines = this.menuTimelines.filter(t => t !== this._vignettePulse);
+            this._vignettePulse.kill();
+            this._vignettePulse = null;
+        }
+        gsap.to(this.vignette, { intensity: 0, duration: 0.4, ease: 'power2.out' });
     }
 }

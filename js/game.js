@@ -97,6 +97,10 @@ class Game {
         // when a boss is incoming. Cleared on game restart / gameOver.
         this._bossPreview = null;
 
+        // Hit-stop counter — frames remaining where world simulation is frozen
+        // but anim ticks + render still fire. Decremented at the top of update().
+        this._hitStopFrames = 0;
+
         // Pause menu
         this._pauseMenuIndex = 0;
 
@@ -114,6 +118,22 @@ class Game {
 
         // Start menu idle loops (state begins as MENU)
         this.anim.startMenuLoops();
+
+        // Auto-pause on tab switch — only auto-resume if WE paused (so we don't
+        // un-pause a manual P/Esc pause when the user comes back).
+        this._autoPaused = false;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (this.state === STATE.PLAYING) {
+                    this._autoPaused = true;
+                    this.pause();
+                }
+            } else if (this._autoPaused && this.state === STATE.PAUSED) {
+                this._autoPaused = false;
+                this.pause(); // toggles back to PLAYING
+                this.anim.screenFlash({ color: '#ffffff', intensity: 0.2, duration: 0.3 });
+            }
+        });
     }
 
     // ----- State transitions -----
@@ -122,6 +142,8 @@ class Game {
         this.audio.resume();
         this.anim.killAll();
         this.anim.stopMenuLoops();
+        this.anim.stopVignette();
+        this._hitStopFrames = 0;
         this.state = STATE.PLAYING;
         this.score = 0;
         this.time = 0;
@@ -178,6 +200,7 @@ class Game {
 
     gameOver() {
         this.anim.killAll();
+        this.anim.stopVignette();
         this.state = STATE.GAME_OVER;
         if (this.score > this.highScore) {
             this.highScore = this.score;
@@ -341,6 +364,14 @@ class Game {
         if (this.state !== STATE.PAUSED) {
             this.gameTime += dt;
             this.anim.tick(this.gameTime);
+        }
+
+        // Hit-stop — freeze world simulation for N frames while anim/shake/
+        // flashes continue. Just an early-return that still ticks shake.
+        if (this._hitStopFrames > 0) {
+            this._hitStopFrames--;
+            this.shake.update(dt);
+            return;
         }
 
         if (this.state === STATE.MENU) {
@@ -565,6 +596,10 @@ class Game {
             if (this._bossPreview.timer <= 0) this._bossPreview = null;
         }
 
+        // Low-HP vignette — pulses while critical, fades when not. Idempotent.
+        if (this.player.lives <= 1) this.anim.startVignette();
+        else this.anim.stopVignette();
+
         // Environmental hazards — less frequent in easy phases, more frequent later
         this.hazardTimer -= dt;
         if (this.hazardTimer <= 0 && !this.bossActive && currentPhase >= 3) {
@@ -717,6 +752,11 @@ class Game {
                 if (!e.active) continue;
                 if (Utils.circleCollision(bullet.x, bullet.y, bullet.radius, e.x, e.y, e.radius)) {
                     if (!bullet.pierce) bullet.active = false;
+                    // Boss damage feels weighty: 3-frame hit-stop + theme-color flash.
+                    if (e.type === 'boss' && this._hitStopFrames === 0) {
+                        this._hitStopFrames = 3;
+                        this.anim.screenFlash({ color: e.color || '#ffffff', intensity: 0.3, duration: 0.08 });
+                    }
                     const killed = e.takeDamage(bullet.damage);
                     if (killed) {
                         e.active = false;
@@ -903,6 +943,9 @@ class Game {
         if (dead) {
             // Re-entry guard: if the dying sequence already started, don't restart it.
             if (this.state === STATE.DYING) return;
+            // Heavy hit-stop + intense red flash punctuates death.
+            this._hitStopFrames = 8;
+            this.anim.screenFlash({ color: '#ff0000', intensity: 0.9, duration: 0.3 });
             this.state = STATE.DYING;
             this._dyingTimer = 1.5;
 
@@ -921,6 +964,9 @@ class Game {
             // Cut music for dramatic silence
             if (this.music) this.music.stop();
         } else {
+            // Survive — moderate hit-stop + red flash.
+            this._hitStopFrames = 4;
+            this.anim.screenFlash({ color: '#ff0000', intensity: 0.5, duration: 0.12 });
             this.shake.shake(8, 0.2);
             this.audio.playHit();
         }
@@ -1013,6 +1059,33 @@ class Game {
         if (this.state === STATE.SHOP)        this.shop.draw(ctx, this.canvas, this.player);
         if (this.state === STATE.WAVE_CLEAR)  this.ui.drawWaveClear(ctx);
         if (this.state === STATE.GAME_OVER)   this.ui.drawGameOver(ctx);
+
+        // Screen flash overlay — driven by anim.screenFlash() (hit-stop, etc).
+        const fa = this.anim.flash.alpha;
+        if (fa > 0.01) {
+            ctx.save();
+            ctx.fillStyle = this.anim.flash.color;
+            ctx.globalAlpha = fa;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.restore();
+        }
+
+        // Low-HP vignette — drawn last, only during gameplay-adjacent states
+        const vi = this.anim.vignette.intensity;
+        if (vi > 0.01 && (this.state === STATE.PLAYING || this.state === STATE.PAUSED || this.state === STATE.WAVE_CLEAR || this.state === STATE.DYING)) {
+            const w = this.canvas.width;
+            const h = this.canvas.height;
+            const grad = ctx.createRadialGradient(
+                w / 2, h / 2, Math.min(w, h) * 0.25,
+                w / 2, h / 2, Math.max(w, h) * 0.75
+            );
+            grad.addColorStop(0, 'rgba(180, 0, 0, 0)');
+            grad.addColorStop(1, `rgba(180, 0, 0, ${vi * 0.65})`);
+            ctx.save();
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            ctx.restore();
+        }
     }
 
 }
