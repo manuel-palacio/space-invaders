@@ -7,8 +7,8 @@ import { Background, SolarFlare, BlackHole, AsteroidBelt } from './background.js
 import { ParticlePool } from './particles.js';
 import { ProjectilePool } from './projectiles.js';
 import { Player } from './player.js';
-import { PowerUp } from './powerups.js';
-import { Boss, EnemySpawner, BOSS_NAMES, PHASES } from './enemies.js';
+import { PowerUp, POWERUP_TYPES, POWERUP_KEYS } from './powerups.js';
+import { Boss, EnemySpawner, BOSS_NAMES, PHASES, Asteroid, SpiderDrone } from './enemies.js';
 import { Shop, SHOP_ITEMS } from './shop.js';
 import { Anim } from './animations.js';
 import { UIRenderer } from './ui.js';
