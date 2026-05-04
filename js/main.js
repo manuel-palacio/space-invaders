@@ -3,7 +3,7 @@
 // ============================================================
 
 import { AssetLoader, ASSET_MANIFEST, updateGameScale } from './utils.js';
-import { Game } from './game.js';
+import { Game, STATE } from './game.js';
 
 (function () {
     'use strict';

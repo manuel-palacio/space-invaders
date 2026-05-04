@@ -6,6 +6,7 @@
 // to cancel anything in flight.
 
 import { gsap } from 'gsap';
+import { Utils } from './utils.js';
 
 export class Anim {
     constructor({ shake, particles, audio }) {
