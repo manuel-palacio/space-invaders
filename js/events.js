@@ -11,7 +11,7 @@
 // Emit from anywhere:
 //     emitter.emit('shot:fired', { x: tipX, y: tipY });
 
-function mitt(all = new Map()) {
+export function mitt(all = new Map()) {
     return {
         all,
         on(type, handler) {
@@ -36,6 +36,5 @@ function mitt(all = new Map()) {
     };
 }
 
-// Single shared instance — load order in index.html ensures this exists
-// before game.js / player.js construct anything.
-const emitter = mitt();
+// Single shared instance imported by every module that needs to emit/subscribe.
+export const emitter = mitt();

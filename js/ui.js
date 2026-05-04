@@ -6,7 +6,10 @@
 // also owns its own local caches (scan-line image, quote word layout)
 // since those exist purely for rendering.
 
-class UIRenderer {
+import { Utils } from './utils.js';
+import { PHASES } from './enemies.js';
+
+export class UIRenderer {
     constructor(game) {
         this.game = game;
         this._scanCanvas = null;

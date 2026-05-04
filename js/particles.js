@@ -2,7 +2,9 @@
 // particles.js — Particle system with object pooling
 // ============================================================
 
-class Particle {
+import { Utils } from './utils.js';
+
+export class Particle {
     constructor() {
         this.reset();
     }
@@ -74,7 +76,7 @@ class Particle {
 // ============================================================
 // ParticlePool — Pre-allocated pool to avoid GC pressure
 // ============================================================
-class ParticlePool {
+export class ParticlePool {
     constructor(size) {
         this.pool = [];
         this.maxSize = size;

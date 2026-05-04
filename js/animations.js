@@ -5,7 +5,9 @@
 // the ticker via tick(); Game.startGame()/gameOver() call killAll()
 // to cancel anything in flight.
 
-class Anim {
+import { gsap } from 'gsap';
+
+export class Anim {
     constructor({ shake, particles, audio }) {
         this.shake = shake;
         this.particles = particles;

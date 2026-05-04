@@ -1,12 +1,18 @@
+FROM node:22-alpine AS build
+WORKDIR /app
+# Install deps first for better layer caching when only source changes.
+COPY package.json package-lock.json* ./
+RUN npm ci || npm install
+# Copy the source tree needed for the bundle.
+COPY index.html vite.config.js ./
+COPY js/ ./js/
+COPY css/ ./css/
+COPY assets/ ./assets/
+COPY manifest.json ./
+RUN npm run build
+
 FROM nginx:alpine
-COPY index.html /usr/share/nginx/html/
-COPY manifest.json /usr/share/nginx/html/
-# Inject build timestamp as cache buster
-RUN sed -i "s/BUILD_VERSION/$(date +%s)/" /usr/share/nginx/html/index.html
-COPY css/ /usr/share/nginx/html/css/
-COPY js/ /usr/share/nginx/html/js/
-COPY assets/ /usr/share/nginx/html/assets/
-COPY vendor/ /usr/share/nginx/html/vendor/
+COPY --from=build /app/dist /usr/share/nginx/html
 # Custom nginx config for SPA and caching
 RUN echo 'server { \
     listen 8080; \

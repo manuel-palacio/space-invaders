@@ -2,7 +2,9 @@
 // powerups.js — Collectible power-up items
 // ============================================================
 
-const POWERUP_TYPES = {
+import { POWERUP_ASSET_MAP } from './utils.js';
+
+export const POWERUP_TYPES = {
     RAPID_FIRE:      { name: 'Rapid Fire',     color: '#ffdd00', duration: 8 },
     TRIPLE_SHOT:     { name: 'Triple Shot',    color: '#00ff66', duration: 10 },
     SHIELD:          { name: 'Shield',         color: '#00aaff', duration: 12 },
@@ -14,9 +16,9 @@ const POWERUP_TYPES = {
     NUKE_OVERCHARGE: { name: 'Nuke Overcharge', color: '#ff4400', duration: 30 }
 };
 
-const POWERUP_KEYS = Object.keys(POWERUP_TYPES);
+export const POWERUP_KEYS = Object.keys(POWERUP_TYPES);
 
-class PowerUp {
+export class PowerUp {
     constructor() {
         this.reset();
     }

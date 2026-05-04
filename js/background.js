@@ -2,6 +2,8 @@
 // background.js — Multi-layer parallax starfield with moon
 // ============================================================
 
+import { Utils } from './utils.js';
+
 // Draw NIN logo on a planet surface
 function drawNINLogo(ctx, x, y, size, style, alpha) {
     ctx.save();
@@ -672,7 +674,7 @@ class RingedPlanet {
 // ============================================================
 // SolarFlare — Bright beam that sweeps vertically across the screen
 // ============================================================
-class SolarFlare {
+export class SolarFlare {
     constructor() {
         this.x = 0;
         this.sweepSpeed = 400;
@@ -753,7 +755,7 @@ class SolarFlare {
 // ============================================================
 // BlackHole — Gravitational anomaly that pulls nearby objects
 // ============================================================
-class BlackHole {
+export class BlackHole {
     constructor() {
         this.x = 0;
         this.y = 0;
@@ -855,7 +857,7 @@ class BlackHole {
 // ============================================================
 // AsteroidBelt — Dense debris field that narrows the safe play area
 // ============================================================
-class AsteroidBelt {
+export class AsteroidBelt {
     constructor() {
         this.topY = 0;
         this.bottomY = 0;
@@ -956,7 +958,7 @@ class AsteroidBelt {
 // ============================================================
 // Background — Assembles all layers
 // ============================================================
-class Background {
+export class Background {
     constructor(canvas, assets) {
         this.canvas = canvas;
         this.assets = assets || {};

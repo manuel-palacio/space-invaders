@@ -2,8 +2,10 @@
 // enemies.js — Asteroids and enemy ships
 // ============================================================
 
+import { Utils, GAME_SCALE } from './utils.js';
+
 // --- Base enemy ---
-class Enemy {
+export class Enemy {
     constructor() {
         this.x = 0;
         this.y = 0;
@@ -38,7 +40,7 @@ class Enemy {
 // ============================================================
 // Asteroid — Rotating irregular polygon, 1 HP
 // ============================================================
-class Asteroid extends Enemy {
+export class Asteroid extends Enemy {
     constructor(canvasW, canvasH, sizeMultiplier = 1, spawnX, spawnY) {
         super();
         this.type = 'asteroid';
@@ -192,7 +194,7 @@ class Asteroid extends Enemy {
 // ============================================================
 // EnemyShip (Alien Critter) — Bug-like creature, scurries & spits
 // ============================================================
-class EnemyShip extends Enemy {
+export class EnemyShip extends Enemy {
     constructor(canvasW, canvasH, tier = 1, assets = {}) {
         super();
         this.assets = assets;
@@ -407,7 +409,7 @@ class EnemyShip extends Enemy {
 // ============================================================
 // Drone (Space Firefly) — Tiny bioluminescent insect, swarms
 // ============================================================
-class Drone extends Enemy {
+export class Drone extends Enemy {
     constructor(canvasW, canvasH, offsetY = 0) {
         super();
         this.type = 'drone';
@@ -539,7 +541,7 @@ class Drone extends Enemy {
 // ============================================================
 // Bomber (Space Octopus) — Tentacled alien, drops ink bombs
 // ============================================================
-class Bomber extends Enemy {
+export class Bomber extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'bomber';
@@ -687,7 +689,7 @@ class Bomber extends Enemy {
 // ============================================================
 // SpaceMine (Space Jellyfish) — Drifts, stings on proximity
 // ============================================================
-class SpaceMine extends Enemy {
+export class SpaceMine extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'mine';
@@ -811,7 +813,7 @@ class SpaceMine extends Enemy {
 // ============================================================
 // StealthFighter (Space Chameleon) — Color-shifting lizard alien
 // ============================================================
-class StealthFighter extends Enemy {
+export class StealthFighter extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'stealth';
@@ -963,7 +965,7 @@ class StealthFighter extends Enemy {
 // ============================================================
 // SpiderDrone — Creepy multi-legged alien, crawls across screen
 // ============================================================
-class SpiderDrone extends Enemy {
+export class SpiderDrone extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'spider';
@@ -1164,7 +1166,7 @@ class SpiderDrone extends Enemy {
 // ============================================================
 // AlienGhost — Translucent, drifts through space, teleports
 // ============================================================
-class AlienGhost extends Enemy {
+export class AlienGhost extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'ghost';
@@ -1312,7 +1314,7 @@ class AlienGhost extends Enemy {
 // ============================================================
 // AlienDevil — Fiery, aggressive, charges at player
 // ============================================================
-class AlienDevil extends Enemy {
+export class AlienDevil extends Enemy {
     constructor(canvasW, canvasH) {
         super();
         this.type = 'devil';
@@ -1508,7 +1510,7 @@ class AlienDevil extends Enemy {
 // Boss — Large, multi-phase boss with cycling attack patterns
 // ============================================================
 // Themed names per bossType (0-9), used by HUD preview at phase transition.
-const BOSS_NAMES = [
+export const BOSS_NAMES = [
     'BRONZE COLOSSUS',
     'CRIMSON SCOUT',
     'VIRAL SWARM',
@@ -1521,7 +1523,7 @@ const BOSS_NAMES = [
     'CHAOS HARBINGER',
 ];
 
-class Boss extends Enemy {
+export class Boss extends Enemy {
     constructor(canvasW, canvasH, bossType = 0, assets = {}) {
         super();
         this.type = 'boss';
@@ -2482,7 +2484,7 @@ class Boss extends Enemy {
 // EnemySpawner — Manages waves with difficulty scaling
 // ============================================================
 // Phase definitions — each phase has a featured enemy and a score threshold
-const PHASES = [
+export const PHASES = [
     // Phases 1-5: easy — generous gaps, one new enemy type per phase
     { name: 'ASTEROID FIELD',     threshold: 0,    featured: 'asteroid',  color: '#aa7733' },
     { name: 'CRITTER COLONY',     threshold: 600,  featured: 'ship',      color: '#ff6644' },
@@ -2497,7 +2499,7 @@ const PHASES = [
     { name: 'TOTAL CHAOS',        threshold: 13000, featured: 'all',      color: '#ff3366' }
 ];
 
-class EnemySpawner {
+export class EnemySpawner {
     constructor(assets) {
         this.assets = assets || {};
         this.timer = 0;

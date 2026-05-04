@@ -1,0 +1,27 @@
+{
+  "name": "nin-defender",
+  "version": "1.0.0",
+  "description": "A Nine Inch Nails-themed space shooter built with HTML5 Canvas, GSAP, Zod and Vite.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/manuel-palacio/nin-defender.git"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "zod": "^4.4.2"
+  },
+  "bugs": {
+    "url": "https://github.com/manuel-palacio/nin-defender/issues"
+  },
+  "homepage": "https://github.com/manuel-palacio/nin-defender#readme"
+}

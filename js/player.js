@@ -2,17 +2,22 @@
 // player.js — Player ship with movement, shooting, power-ups
 // ============================================================
 
+import { Utils, GAME_SCALE } from './utils.js';
+import { POWERUP_TYPES } from './powerups.js';
+import { Schemas } from './schemas.js';
+import { emitter } from './events.js';
+
 // Skin passives — keyed by Player.skinIndex (matches order of skinNames).
 // applyUpgrades() reads this AFTER computing base stats so the modifiers
 // stack on top of (current upgrade levels + difficulty start values).
-const SKIN_PASSIVES = {
+export const SKIN_PASSIVES = {
     0: { name: 'CLASSIC', desc: 'Balanced — no modifier',     speedMul: 1.0,  dmgMul: 1.0, maxLivesDelta:  0, alwaysTripleShot: false },
     1: { name: 'STEALTH', desc: '+15% speed, -1 max life',    speedMul: 1.15, dmgMul: 1.0, maxLivesDelta: -1, alwaysTripleShot: false },
     2: { name: 'VIPER',   desc: 'Always triple, -20% damage', speedMul: 1.0,  dmgMul: 0.8, maxLivesDelta:  0, alwaysTripleShot: true  },
     3: { name: 'TANK',    desc: '+1 max life, -20% speed',    speedMul: 0.8,  dmgMul: 1.0, maxLivesDelta:  1, alwaysTripleShot: false },
 };
 
-class Player {
+export class Player {
     constructor(canvas, assets) {
         this.canvas = canvas;
         this.assets = assets || {};

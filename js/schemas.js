@@ -5,7 +5,7 @@
 // Each loadX() helper handles missing keys, parse errors, and schema
 // failures by returning the sensible default and logging a warning.
 
-const z = Zod.z;
+import { z } from 'zod';
 
 const UpgradesSchema = z.object({
     damage:   z.number().int().min(0).max(5).default(0),
@@ -53,7 +53,7 @@ function safeLoad(key, schema, fallback, json) {
 
 // Convenience loaders — single source of truth for every key. Each carries
 // an explicit default so we never rely on Zod's `.parse(undefined)` paths.
-const Schemas = {
+export const Schemas = {
     loadUpgrades:    () => safeLoad('ninDefenderUpgrades', UpgradesSchema,
                           { damage: 0, fireRate: 0, speed: 0, bombs: 0, shields: 0, lives: 0 }, true),
     loadLeaderboard: () => safeLoad('ninDefenderLeaderboard', LeaderboardSchema, [], true),

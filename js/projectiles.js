@@ -2,7 +2,9 @@
 // projectiles.js — Laser projectiles with pooling
 // ============================================================
 
-class Projectile {
+import { GAME_SCALE } from './utils.js';
+
+export class Projectile {
     constructor() {
         this.reset();
     }
@@ -87,7 +89,7 @@ class Projectile {
 // ============================================================
 // ProjectilePool
 // ============================================================
-class ProjectilePool {
+export class ProjectilePool {
     constructor(size) {
         this.pool = [];
         this.maxSize = size;

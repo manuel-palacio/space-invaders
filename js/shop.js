@@ -2,10 +2,12 @@
 // shop.js — Inter-wave upgrade shop (NIN industrial style)
 // ============================================================
 
+import { SKIN_PASSIVES } from './player.js';
+
 // ShopItem is polymorphic on `kind`: 'upgrade' | 'consumable' | 'cosmetic'.
 // Each kind owns its own getCost/getDescription/canPurchase/apply via injected
 // callbacks; the default behavior matches stat upgrades for backwards compat.
-class ShopItem {
+export class ShopItem {
     constructor(opts) {
         this.id        = opts.id;
         this.name      = opts.name;
@@ -53,7 +55,7 @@ function statDesc(label, fn, unit, lvlKey, maxLevel) {
     };
 }
 
-const SHOP_ITEMS = [
+export const SHOP_ITEMS = [
     // ----- Stat upgrades -----
     new ShopItem({
         id: 'damage', name: 'DAMAGE', kind: 'upgrade',
@@ -129,7 +131,7 @@ const SHOP_ITEMS = [
     }),
 ];
 
-class Shop {
+export class Shop {
     constructor() {
         this.selectedIndex = 0;
         this.purchaseFlash = 0;

@@ -2,13 +2,15 @@
 // utils.js — Utility functions, audio manager, screen shake
 // ============================================================
 
-// Global scale factor — 1.0 at 1920px width, scales down on smaller screens
-let GAME_SCALE = 1.0;
-function updateGameScale(canvasWidth) {
+// Global scale factor — 1.0 at 1920px width, scales down on smaller screens.
+// `let` so updateGameScale() can reassign; ES module live-binding means
+// importers see the new value automatically.
+export let GAME_SCALE = 1.0;
+export function updateGameScale(canvasWidth) {
     GAME_SCALE = Math.max(0.5, Math.min(1.0, canvasWidth / 1200));
 }
 
-const Utils = {
+export const Utils = {
     random(min, max) {
         return Math.random() * (max - min) + min;
     },
@@ -70,7 +72,7 @@ const Utils = {
 // ============================================================
 // ScreenShake
 // ============================================================
-class ScreenShake {
+export class ScreenShake {
     constructor() {
         this.intensity = 0;
         this.duration = 0;
@@ -105,7 +107,7 @@ class ScreenShake {
 // ============================================================
 // AudioManager — Web Audio API synthesised sound effects
 // ============================================================
-class AudioManager {
+export class AudioManager {
     constructor() {
         this.ctx = null;
         this.muted = false;
@@ -313,7 +315,7 @@ class AudioManager {
 // ============================================================
 // MusicManager — Procedural dark ambient / industrial background music
 // ============================================================
-class MusicManager {
+export class MusicManager {
     constructor(audioCtx, masterGain) {
         this.ctx = audioCtx;
         this.masterGain = masterGain;
@@ -403,7 +405,7 @@ class MusicManager {
 // ============================================================
 // Asset manifest — drop PNGs into assets/ to upgrade visuals
 // ============================================================
-const ASSET_MANIFEST = {
+export const ASSET_MANIFEST = {
     splashBg:    'assets/splash-bg.png',
     gameoverBg:  'assets/gameover-bg.png',
     playerShip:  'assets/player-ship-2.png',
@@ -427,7 +429,7 @@ const ASSET_MANIFEST = {
 };
 
 // Maps power-up type keys to asset keys
-const POWERUP_ASSET_MAP = {
+export const POWERUP_ASSET_MAP = {
     RAPID_FIRE:  'puRapidFire',
     TRIPLE_SHOT: 'puTripleShot',
     SHIELD:      'puShield',
@@ -437,7 +439,7 @@ const POWERUP_ASSET_MAP = {
 // ============================================================
 // AssetLoader — Preloads images, silently skips missing ones
 // ============================================================
-class AssetLoader {
+export class AssetLoader {
     constructor() {
         this.assets = {};
         this.loaded = 0;

@@ -3,7 +3,7 @@
 // Edit this file to update in-game quotes per song
 // ============================================================
 
-const SONG_LYRICS = {
+export const SONG_LYRICS = {
     'the-collector': [
         'I PICK THINGS UP I AM A COLLECTOR',
         'THINGS THEY TEND TO ACCUMULATE',

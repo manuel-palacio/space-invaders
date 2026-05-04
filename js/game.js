@@ -2,7 +2,21 @@
 // game.js — Game state machine, update loop, collision, HUD
 // ============================================================
 
-const STATE = {
+import { Utils, AudioManager, MusicManager, ScreenShake, GAME_SCALE } from './utils.js';
+import { Background, SolarFlare, BlackHole, AsteroidBelt } from './background.js';
+import { ParticlePool } from './particles.js';
+import { ProjectilePool } from './projectiles.js';
+import { Player } from './player.js';
+import { PowerUp } from './powerups.js';
+import { Boss, EnemySpawner, BOSS_NAMES, PHASES } from './enemies.js';
+import { Shop, SHOP_ITEMS } from './shop.js';
+import { Anim } from './animations.js';
+import { UIRenderer } from './ui.js';
+import { Schemas } from './schemas.js';
+import { emitter } from './events.js';
+import { SONG_LYRICS } from './lyrics.js';
+
+export const STATE = {
     MENU:       'MENU',
     PLAYING:    'PLAYING',
     PAUSED:     'PAUSED',
@@ -12,7 +26,7 @@ const STATE = {
     GAME_OVER:  'GAME_OVER'
 };
 
-class Game {
+export class Game {
     constructor(canvas, ctx, assets) {
         this.canvas = canvas;
         this.ctx = ctx;
